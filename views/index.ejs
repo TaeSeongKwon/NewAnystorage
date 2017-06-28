@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <script src="/socket.io/socket.io.js"></script>
+  </head>
+  <body>
+    <h1><%= title %></h1>
+    <p>Welcome to <%= title %></p>
+    <script>
+      var socket = io.connect("http://localhost:3000");
+      socket.on("connect", function(){
+          alert("hi!");
+          socket.on("data", function(data){
+              console.log("data : ", data);
+             alert("data :"+data.userId);
+          });
+      });
+    </script>
+  </body>
+</html>
