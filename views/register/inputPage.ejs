@@ -1,0 +1,98 @@
+<% include ../Handler/header %>
+		<style>
+			#inputSec{
+				background:rgba(255,255,255,.50);
+				text-align: center;
+				padding-bottom :60px;
+				padding-top :40px;
+				border-radius: 10px;
+			}
+			.form-group input{
+				display: inline;
+			}
+			#inputSec h1{
+				margin-top: 0px;
+			}
+			.introMargin{
+				margin-bottom: 20px;
+			}
+		</style>
+		<div id="headerwrap">
+			<div class='subbackground'>
+				<div class="container">
+					<div class="row">
+						<div class="col-md-4 col-md-offset-2 introMargin">
+							<!-- <h1>계정을 만들어<br/>
+							당신의 스마트폰과 연결하세요.</h1> -->
+							
+							<div id='inputSec'>
+								<h1>환영합니다!</h1>
+								<form class="" role="form" action="/register/complete" method='post'>
+								  <div class="form-group">
+								    <input type="text" class="form-control" id="exampleInputEmail1" placeholder="이메일을 입력하세요." name='email' value='<%=id%>' readOnly>
+								  </div>
+								  <div class="form-group">
+								    <input type="password" class="form-control" id="exampleInputEmail1" name='pass1' placeholder="비밀번호를 입력">
+								  </div>
+								  <div class="form-group">
+								    <input type="password" class="form-control" id="exampleInputEmail1" name='pass2' placeholder="비밀번호 확인" >
+								  </div>
+								  <div class="form-group">
+								    <input type="text" class="form-control" id="exampleInputEmail1" name='name' placeholder="이름" >
+								  </div>
+								  <!-- <div class="form-group"> -->
+								  	<button type="submit" class="btn btn-warning btn-lg fon-control">가입하기!</button>
+								  <!-- </div> -->
+								  
+								</form>		
+							</div>
+						</div><!-- /col-lg-6 -->
+						<div class="col-md-6 introMargin">
+							<img class="img-responsive visible-md visible-lg" src="/img/ipad-hand.png" alt="">
+							<div id="carousel-example-generic" class="carousel slide hidden-lg hidden-md" data-ride="carousel">
+							  <!-- Indicators -->
+							  <ol class="carousel-indicators">
+							    <li data-target="#carousel-example-generic" data-slide-to="0" class="active"></li>
+							    <li data-target="#carousel-example-generic" data-slide-to="1"></li>
+							    <li data-target="#carousel-example-generic" data-slide-to="2"></li>
+							  </ol>
+							
+							  <!-- Wrapper for slides -->
+							  <div class="carousel-inner">
+							    <div class="item active">
+							      <img src="/img/p01.png" alt="">
+							    </div>
+							    <div class="item">
+							      <img src="/img/p02.png" alt="">
+							    </div>
+							    <div class="item">
+							      <img src="/img/p03.png" alt="">
+							    </div>
+							  </div>
+							</div>	
+						</div><!-- /col-lg-6 -->
+						
+					</div><!-- /row -->
+				</div><!-- /container -->
+			</div>  <!-- /subbackground -->
+		</div><!-- /headerwrap -->
+
+		<div class="container">
+			<!-- <hr>
+			<div class="row centered">
+				<div class="col-lg-6 col-lg-offset-3">
+					<form class="form-inline" role="form">
+					  <div class="form-group">
+					    <input type="email" class="form-control" id="exampleInputEmail1" placeholder="Enter your email address">
+					  </div>
+					  <button type="submit" class="btn btn-warning btn-lg">Invite Me!</button>
+					</form>					
+				</div>
+				<div class="col-lg-3"></div>
+			</div> --><!-- /row -->
+			<hr>
+			<p class="centered">2016 © Anystorage. Developer TaeSeong Kwon.<br>Created by BlackTie.co - Attribution License 3.0 - 2013</p>
+		</div><!-- /container -->
+
+	</body>
+</html>

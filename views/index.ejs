@@ -1,22 +1,178 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title><%= title %></title>
-    <link rel='stylesheet' href='/stylesheets/style.css' />
-    <script src="/socket.io/socket.io.js"></script>
-  </head>
-  <body>
-    <h1><%= title %></h1>
-    <p>Welcome to <%= title %></p>
-    <script>
-      var socket = io.connect("http://localhost:3000");
-      socket.on("connect", function(){
-          alert("hi!");
-          socket.on("data", function(data){
-              console.log("data : ", data);
-             alert("data :"+data.userId);
-          });
-      });
-    </script>
-  </body>
+<% include ./Handler/header %>
+   
+	<div id="headerwrap">
+		<div class='subbackground'>
+			<div class="container">
+				<div class="row">
+					<div class="col-lg-6">
+						<h1>계정을 만들어<br/>
+						당신의 스마트폰과 연결하세요.</h1>
+						<form class="form-inline" role="form" method="post" action = '/register/second'>
+						  <div class="form-group">
+						    <input type="email" class="form-control" id="exampleInputEmail1" name='email' placeholder="이메일을 입력하세요.">
+						  </div>
+						  <button type="submit" class="btn btn-warning btn-lg">가입하기!</button>
+						  <img src='/img/setuplink.png' style='width:128px;'>
+						</form>		
+
+					</div><!-- /col-lg-6 -->
+					<div class="col-lg-6">
+						<img class="img-responsive" src="/img/ipad-hand.png" alt="">
+					</div><!-- /col-lg-6 -->
+					
+				</div><!-- /row -->
+			</div><!-- /container -->
+		</div>  <!-- /subbackground -->
+	</div><!-- /headerwrap -->
+	
+	<div class="container">
+		<div class="row mt centered">
+			<div class="col-lg-6 col-lg-offset-3">
+				<h1>어디서든 연결하세요.</h1>
+				<h3>선으로만 연결하여 데이터를 백업하고 저장하는 것을 이제 그만하세요! 우리 Anystorage 앱을 켜기만 한다면 어디서든 접근할 수 있습니다.</h3>
+			</div>
+		</div><!-- /row -->
+	
+		<! -- CAROUSEL -->
+		<div class="row mt centered">
+			<div class="col-lg-6 col-lg-offset-3">
+				<div id="carousel-example-generic" class="carousel slide" data-ride="carousel">
+				  <!-- Indicators -->
+				  <ol class="carousel-indicators">
+				    <li data-target="#carousel-example-generic" data-slide-to="0" class="active"></li>
+				    <li data-target="#carousel-example-generic" data-slide-to="1"></li>
+				    <li data-target="#carousel-example-generic" data-slide-to="2"></li>
+				  </ol>
+				
+				  <!-- Wrapper for slides -->
+				  <div class="carousel-inner">
+				    <div class="item active">
+				      <img src="/img/p01.png" alt="">
+				    </div>
+				    <div class="item">
+				      <img src="/img/p02.png" alt="">
+				    </div>
+				    <div class="item">
+				      <img src="/img/p03.png" alt="">
+				    </div>
+				  </div>
+				</div>			
+			</div><!-- /col-lg-8 -->
+		</div><!-- /row -->
+	</div><! --/container -->
+	
+	<div class="container">
+		<hr>
+		<div class="row centered">
+			<div class="col-lg-6 col-lg-offset-3">
+				<h4>당신의 스마트폰을 언제 어디서든 편리하게!</h4>
+				<!-- <form class="form-inline" role="form">
+				  <div class="form-group">
+				    <input type="email" class="form-control" id="exampleInputEmail1" placeholder="Enter your email address">
+				  </div>
+				  <button type="submit" class="btn btn-warning btn-lg">가입하기!</button>
+				</form>					 -->
+			</div>
+			<div class="col-lg-3"></div>
+		</div><!-- /row -->
+		<hr>
+	</div><!-- /container -->
+	<div class="container">
+		<div class="row mt centered">
+			<div class="col-lg-6 col-lg-offset-3">
+				<h1>제약사항 없이 <br/>스마트폰에 연결 하세요.</h1>
+				<h3>당신의 스마트폰에 접근하기 위하여 다른 컴퓨터에 프로그램을 설치 하지마세요! Anystorage는 브라우저에서 모든것이 가능합니다.</h3>
+			</div>
+		</div><!-- /row -->
+		
+		<div class="row mt centered">
+			<div class="col-lg-4">
+				<img src="/img/intro1_1.png" width="180" alt="">
+				<h4>1 - App을 실행 </h4>
+				<p>당신의 스마트폰을 어디서든 접근하기 위하여 우리 Anystorage Application을 설치하여 실행합니다. 최초 로그인을 실행뒤에는 App을 실행하는 것만으로도 접근이 가능합니다! </p>
+			</div><!--/col-lg-4 -->
+
+			<div class="col-lg-4">
+				<img src="/img/intro1_2.png" width="180" alt="">
+				<h4>2 - 브라우저 접속</h4>
+				<p>브라우저를 실행할 수 있는 모든 기기들이라면 우리 Anystorage는 당신의 스마트폰을 접근할 수 있어요. 우리 Anystorage사이트에 로그인하면 당신의 스마트폰을 쉽게 접속할 수 있답니다. </p>
+
+			</div><!--/col-lg-4 -->
+
+			<div class="col-lg-4">
+				<img src="/img/intro1_3.png" width="180" alt="">
+				<h4>3 - 파일전송 및 백업</h4>
+				<p>스마트폰의 저장소를 당신에게 친숙한 인터페이스를 제공합니다. 이곳에서 당신의 스마트폰의 저장소에 파일을 다운로드 또는 업로드하세요.</p>
+
+			</div><!--/col-lg-4 -->
+		</div><!-- /row -->
+	</div><!-- /container -->
+	
+	<div class="container">
+		<hr>
+		<div class="row centered">
+			<div class="col-lg-6 col-lg-offset-3">
+				<h4><a href='#headerwrap' >Anystorage 설치하러 가기</a></h4>
+				<!-- <form class="form-inline" role="form">
+				  <div class="form-group">
+				    <input type="email" class="form-control" id="exampleInputEmail1" placeholder="Enter your email address">
+				  </div>
+				  <button type="submit" class="btn btn-warning btn-lg">Invite Me!</button>
+				</form>	 -->				
+			</div>
+			<div class="col-lg-3"></div>
+		</div><!-- /row -->
+		<hr>
+	</div><!-- /container -->
+
+	<div class="container">
+		<div class="row mt centered">
+			<div class="col-lg-6 col-lg-offset-3">
+				<h1>우리 Anystorage의 개발팀<!-- <br/>Design Lovers. --></h1>
+				<h3>Anystorage을 개발하기위하여 같이 함께한 멋진 팀원들입니다.</h3>
+			</div>
+		</div><!-- /row -->
+		
+		<div class="row mt centered">
+			<div class="col-lg-4 col-lg-offset-4">
+				<img class="img-circle" src="/img/developer01.png" width="140" alt="">
+				<h4>TaeSeong Kwon</h4>
+				<p>현재 부경대학교 컴퓨터공학과를 재학중이며 삼성소프트웨어멤버십 24-2기 회원으로 활동중인 학생이다. 현재는 주로 웹개발 파트를 맡고있으며 Anystorage대부분의 개발파트를 자신이 맡았다.</p>
+				<p><i class="glyphicon glyphicon-send"></i>xotjd183@gmail.com <i class="glyphicon glyphicon-phone"></i>010-2835-2911 <i class="glyphicon glyphicon-globe"></i></p>
+			</div><!--/col-lg-4 -->
+
+			<!-- <div class="col-lg-4">
+				<img class="img-circle" src="/img/pic2.jpg" width="140" alt="">
+				<h4>Pete Ford</h4>
+				<p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever.</p>
+				<p><i class="glyphicon glyphicon-send"></i> <i class="glyphicon glyphicon-phone"></i> <i class="glyphicon glyphicon-globe"></i></p>
+			</div> --><!--/col-lg-4 -->
+
+			<!-- <div class="col-lg-4">
+				<img class="img-circle" src="/img/pic3.jpg" width="140" alt="">
+				<h4>Angelica Finning</h4>
+				<p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever.</p>
+				<p><i class="glyphicon glyphicon-send"></i> <i class="glyphicon glyphicon-phone"></i> <i class="glyphicon glyphicon-globe"></i></p>
+			</div> --><!--/col-lg-4 -->
+		</div><!-- /row -->
+	</div><!-- /container -->
+	
+	<div class="container">
+		<!-- <hr>
+		<div class="row centered">
+			<div class="col-lg-6 col-lg-offset-3">
+				<form class="form-inline" role="form">
+				  <div class="form-group">
+				    <input type="email" class="form-control" id="exampleInputEmail1" placeholder="Enter your email address">
+				  </div>
+				  <button type="submit" class="btn btn-warning btn-lg">Invite Me!</button>
+				</form>					
+			</div>
+			<div class="col-lg-3"></div>
+		</div> --><!-- /row -->
+		<hr>
+		<p class="centered">2016 © Anystorage. Developer TaeSeong Kwon.<br>Created by BlackTie.co - Attribution License 3.0 - 2013</p>
+	</div><!-- /container -->
+	
+   </body>
 </html>

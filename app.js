@@ -12,7 +12,13 @@ var bodyParser = require('body-parser');
 
 var index = require('./routes/index');
 var users = require('./routes/users');
+/****** User Add Route ******/
+var register = require('./routes/register');
+var auth = require('./routes/auth');
+var mainRoute = require('./routes/main');
+var device = require('./routes/device');
 
+/****************************/
 /****** User Add Moudule ******/
 var io = require("socket.io")();
 var net = require("net");
@@ -22,6 +28,14 @@ var session = require("express-session")({
     saveUninitialized: true
 });
 var sharedsession = require("express-socket.io-session");
+var validator = require('express-validator');
+var mongoose = require("mongoose");
+
+mongoose.connect('mongodb://localhost/anystorage_db');
+mongoose.connection.once("open", function(){
+    console.log("Connected to mongod server");
+});
+mongoose.connection.on("error", console.error);
 /*******************************/
 
 var app = express();
@@ -44,6 +58,14 @@ app.use(session);       // Add express-session
 app.use('/', index);
 app.use('/users', users);
 
+app.use(validator());
+/******* User URL Pattern *********/
+app.use('/register', register);
+app.use('/auth', auth);
+app.use('/main', mainRoute);
+app.use('/device', device);
+/**********************************/
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   var err = new Error('Not Found');
@@ -61,9 +83,29 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
-/********************* Socket.io Server Code *************************/
+/********************* User Defined Data Structure ***********************/
+function Member(){
+  var webUsers = [];
+  var devices = new Map();
+  this.getUsers = function(){
+    return webUsers;
+  };
+  this.getDevices = function(){
+
+  };
+  this.removeDevice = function(key){
+    return devices.delete(key);
+  }
+
+}
 C_CONNECT = "connection";
 DATA = "data";
+REQUEST = "request";
+RESPONSE = "response";
+
+TYPE_DEVICE_LIST = "device_list";
+/********************* Socket.io Server Code *************************/
+
 
 console.log("===== WebSocket Server Start =====");
 io.use(sharedsession(session));
@@ -74,12 +116,28 @@ io.on(C_CONNECT, function(client){
 
 function initClient(client){
   console.log("==> Initialize Client Event!");
-  console.log(client.handshake.session.userId);
-  client.emit("data", {userId : client.handshake.session.userId});
+  console.log(client.handshake.session.userInfo);
+  client.emit("packet", {userData : client.handshake.session.userInfo});
   client.on(DATA, function(data){
+      // if("data")
+  });
+  client.on(REQUEST, function(data){
+    if(data["type"] == TYPE_DEVICE_LIST){
+      console.log("device_list");
+    }
+  });
+}
+/******************** TCP Server Section *********************/
+console.log("===== TCP Server Start =====")
+var myServer = net.createServer();
+myServer.listen(9900);
+myServer.on("connection", function(socket){
+  console.log("Connect! Client(Android)");
+  socket.on("data", function(recv_buf){
+    var data = recv_buf.toString();
 
   });
 
-}
+});
 
 module.exports = app;

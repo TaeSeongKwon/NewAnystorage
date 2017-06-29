@@ -1,0 +1,103 @@
+<% include ./Handler/header %>
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="/js/angular.min.js"></script>
+		<script src="/js/socket.min.js"></script>
+		<style>
+			#main{
+				margin-top: 81px;
+			}
+			.hdd_icon{
+				font-size: 100px;
+			}
+			.hdd_sec{
+				text-align: center;
+				padding-top: 15px;
+				padding-bottom: 5px;
+				/*cursor: pointer;*/
+			}
+			.device_link{
+				color: #7b7b7b; 
+    			text-decoration: none;
+    			outline: 0;
+			}
+		</style>
+		<section ng-app="anystorage" ng-controller="mainController" id='main' class='container'>
+			<h1>내 저장 디바이스</h1>
+			<article class='panel panel-info'>
+				<div class='panel-heading'>
+					Online
+				</div>
+				<div class='panel-body'>
+					<div class='row' id='OnlineList'>
+						
+						<div ng-if="onlineList.length == 0" class='col-md-3' id='empty_ui'>
+							<div class='thumbnail hdd_sec'>
+								<a class='device_link'><span class='glyphicon glyphicon-remove-circle hdd_icon' ></span></a>
+								<div class='caption'>
+									<h3>Empty Device!</h3>
+								</div>
+							</div>
+						</div>		
+
+					</div>
+				</div>
+
+			</article>
+			<article class='panel panel-danger'>
+				<div class='panel-heading'>
+					Offline
+				</div>
+				<div class='panel-body'>
+					<div class='row' id='OfflineList'>
+						<div ng-if="offlineList.length == 0" class='col-md-3' id='empty_ui'>
+							<div class='thumbnail hdd_sec'>
+								<a class='device_link'><span class='glyphicon glyphicon-remove-circle hdd_icon' ></span></a>
+								<div class='caption'>
+									<h3>Empty Device!</h3>
+								</div>
+							</div>
+						</div>
+
+						<div ng-repeat="(idx, tuple) in onlineList" class="col-md-3">
+							<div class="thumbnail hdd_sec">
+								<a class="device_link" id="" href="#">
+									<span class='glyphicon glyphicon-hdd hdd_icon' ></span>
+								</a>
+								<div class="caption">
+									<h3></h3>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				
+			</article>
+			<hr>
+		</section>
+		<script>
+			var app = angular.module("anystorage", ["btford.socket-io"]);
+			app.factory('socket', function (socketFactory) {return socketFactory();});
+			app.controller("mainController", function($scope, socket){
+			    $scope.offlineList = [];
+			    $scope.onlineList = [];
+			    $scope.myInit = function(){
+					$scope.offlineList = <%=deviceList.toString()%>;
+				}
+
+				socket.forward("connect");
+                socket.forward("response");
+
+				console.log("test");
+				$scope.$on("socket:connect", function(){
+					console.log("connect!");
+					socket.emit("request", {"type" : "device_list"});
+
+                    $scope.$on("socket:response", function(e, data){
+
+					});
+
+				});
+			});
+		</script>
+	</body>
+</html>
