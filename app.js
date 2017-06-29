@@ -30,6 +30,7 @@ var session = require("express-session")({
 var sharedsession = require("express-socket.io-session");
 var validator = require('express-validator');
 var mongoose = require("mongoose");
+var hash = require('password-hash');
 
 mongoose.connect('mongodb://localhost/anystorage_db');
 mongoose.connection.once("open", function(){
@@ -98,14 +99,32 @@ function Member(){
   }
 
 }
+function ResponseData(t, c, m){
+  this.__constructor(t, c,m);
+}
+ResponseData.prototype.type;
+ResponseData.prototype.code;
+ResponseData.prototype.statusText;
+ResponseData.prototype.data;
+ResponseData.prototype.setData = function(data){
+  this.data = data;
+};
+ResponseData.prototype.__constructor = function(type, code, msg){
+  this.type = type;
+  this.code = code;
+  this.statusText = msg;
+};
+
 C_CONNECT = "connection";
 DATA = "data";
 REQUEST = "request";
 RESPONSE = "response";
 
 TYPE_DEVICE_LIST = "device_list";
-/********************* Socket.io Server Code *************************/
+var userTable = new Map();
 
+/********************* Socket.io Server Code *************************/
+var User = require("./models/user");
 
 console.log("===== WebSocket Server Start =====");
 io.use(sharedsession(session));
@@ -128,16 +147,60 @@ function initClient(client){
   });
 }
 /******************** TCP Server Section *********************/
-console.log("===== TCP Server Start =====")
-var myServer = net.createServer();
-myServer.listen(9900);
+LOGIN = "login";
+
+console.log("===== TCP Server Start =====");
+var myServer = net.createServer();      // 소켓서버 생성
+myServer.listen(9900);        // PORT 9900으로 바인딩
+
+// 연결 요청 허용 메소드
 myServer.on("connection", function(socket){
   console.log("Connect! Client(Android)");
-  socket.on("data", function(recv_buf){
-    var data = recv_buf.toString();
 
+  // 메시지 데이터 핸들링
+  socket.on("data", function(recv_buf){
+    var data = JSON.parse(recv_buf.toString());
+    if(data["type"] == LOGIN){
+      console.log("===> Recv : "+LOGIN);
+      var email = data["user_id"];
+      var pwd = data["user_pwd"];
+      tcpLogin(data, socket);
+    }
   });
 
 });
 
+// 로그인 함수 구현
+function tcpLogin(data, socket){
+    var email = data["user_id"];
+    var pwd = data["user_pwd"];
+    // var deviceModel = data["device_model"];
+    var deviceSerial = data["device_serial"];
+
+    var query = User.find({"user_id" : email});
+    query.then(
+        function(result){
+          var rs = result[0];
+          var buff = null;
+          if(hash.verify(pwd, rs["user_pwd"])){
+              var resData = new ResponseData("response:login", 200, "Success Login!");
+              resData.setData(null);
+              console.log(JSON.stringify(resData));
+              buff = new Buffer(JSON.stringify(resData), "UTF-8");
+              var member = userTable.get(email);
+
+          }else{
+              var resData = new ResponseData("response:login", 400, "Incorrect! User Email or Password!");
+              resData.setData(null);
+              console.log(JSON.stringify(resData));
+              buff = new Buffer(JSON.stringify(resData), "UTF-8");
+          }
+
+          socket.write(buff);
+        },
+        function(err){
+          console.log("login error", err);
+        }
+    );
+}
 module.exports = app;
