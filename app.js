@@ -85,11 +85,15 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 /********************* User Defined Data Structure ***********************/
-function Member(){
-  var webUsers = [];
+function Member(client){
+  var webUser;
   var devices = new Map();
-  this.getUsers = function(){
-    return webUsers;
+  webUser = client;
+  this.getUser = function(){
+    return webUser;
+  };
+  this.setUser = function(s){
+      webUser = s;
   };
   this.getDevices = function(){
 
@@ -125,15 +129,28 @@ var userTable = new Map();
 
 /********************* Socket.io Server Code *************************/
 var User = require("./models/user");
-
+var wNum = 0;
 console.log("===== WebSocket Server Start =====");
 io.use(sharedsession(session));
 io.on(C_CONNECT, function(client){
   console.log("=> Client Connect!");
   initClient(client);
+
 });
 
 function initClient(client){
+    var userKey = client.handshake.session.userInfo.user_id;
+  //  client.set("user_num", "wClient_"+wNum);
+  //  wNum++;
+    var member = null;
+    if(userTable.has(userKey)){
+        member = userTable(userKey);
+        var tmp = member.getUser();
+        member.setUser(client);
+    }else{
+        member = new Member(client);
+        userTable.set(userKey, member);
+    }
   console.log("==> Initialize Client Event!");
   console.log(client.handshake.session.userInfo);
   client.emit("packet", {userData : client.handshake.session.userInfo});
