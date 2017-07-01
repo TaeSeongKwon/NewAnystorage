@@ -21,7 +21,7 @@
     			outline: 0;
 			}
 		</style>
-		<section ng-app="anystorage" ng-controller="mainController" id='main' class='container'>
+		<section ng-app="anystorage" ng-controller="mainController" id='main' class='container' ng-init="myInit()">
 			<h1>내 저장 디바이스</h1>
 			<article class='panel panel-info'>
 				<div class='panel-heading'>
@@ -29,7 +29,6 @@
 				</div>
 				<div class='panel-body'>
 					<div class='row' id='OnlineList'>
-						
 						<div ng-if="onlineList.length == 0" class='col-md-3' id='empty_ui'>
 							<div class='thumbnail hdd_sec'>
 								<a class='device_link'><span class='glyphicon glyphicon-remove-circle hdd_icon' ></span></a>
@@ -37,8 +36,17 @@
 									<h3>Empty Device!</h3>
 								</div>
 							</div>
-						</div>		
-
+						</div>
+						<div ng-repeat="(idx, tuple) in onlineList" class="col-md-3">
+							<div class="thumbnail hdd_sec">
+								<a class="device_link" id="" href="/device?name={{tuple['device_serial']}}">
+									<span class='glyphicon glyphicon-hdd hdd_icon' ></span>
+								</a>
+								<div class="caption">
+									<h3>{{tuple["device_model"]}}</h3>
+								</div>
+							</div>
+						</div>
 					</div>
 				</div>
 
@@ -58,13 +66,13 @@
 							</div>
 						</div>
 
-						<div ng-repeat="(idx, tuple) in onlineList" class="col-md-3">
+						<div ng-repeat="(idx, tuple) in offlineList" class="col-md-3">
 							<div class="thumbnail hdd_sec">
 								<a class="device_link" id="" href="#">
 									<span class='glyphicon glyphicon-hdd hdd_icon' ></span>
 								</a>
 								<div class="caption">
-									<h3></h3>
+									<h3>{{tuple["device_model"]}}</h3>
 								</div>
 							</div>
 						</div>
@@ -74,30 +82,95 @@
 			</article>
 			<hr>
 		</section>
+
 		<script>
+			DEVICE_LIST = "device_list";
+			READY = "ready";
+			REQUEST = "request";
+			RESPONSE = "response";
+			ONLINE = "online";
+			OFFLINE = "offline";
+
 			var app = angular.module("anystorage", ["btford.socket-io"]);
 			app.factory('socket', function (socketFactory) {return socketFactory();});
 			app.controller("mainController", function($scope, socket){
 			    $scope.offlineList = [];
 			    $scope.onlineList = [];
 			    $scope.myInit = function(){
-					$scope.offlineList = <%=deviceList.toString()%>;
+			        console.log("init!");
+					$scope.offlineList = JSON.parse("<%=deviceList.toString("utf8") %>".replace(/&#34;/g, '"'));
+                    console.log("data : ", $scope.offlineList);
+                    socket.forward("connect");
+                    socket.forward(RESPONSE);
+                    socket.forward(ONLINE);
+                    socket.forward(OFFLINE);
+                    socket.forward(READY);
 				}
 
-				socket.forward("connect");
-                socket.forward("response");
-
-				console.log("test");
 				$scope.$on("socket:connect", function(){
 					console.log("connect!");
-					socket.emit("request", {"type" : "device_list"});
 
-                    $scope.$on("socket:response", function(e, data){
+
+                    $scope.$on("socket:"+RESPONSE, function(e, data){
+                        console.log(RESPONSE, data);
+
+						if(data["type"] === DEVICE_LIST){
+						    var dList = data["device"];
+							var list = $scope.offlineList;
+							var flag = false;
+							console.log(dList);
+							for(var i = 0; i<$scope.onlineList.length; i++){
+							    var cut = $scope.onlineList[i];
+							    $scope.offlineList.push(cut);
+							}
+                            $scope.onlineList = [];
+
+							for(var i = 0; i < dList.length; i++ ) {
+							    var device = dList[i];
+                                $scope.onlineList.push(device);
+                                for (var idx = 0; idx < list.length; idx++) {
+                                    var elem = list[idx];
+                                    console.log(idx, elem);
+                                    if (elem["device_serial"] === device["device_serial"] &&
+                                        elem["device_model"] === device["device_model"] &&
+                                        elem["device_name"] === device["device_name"]) {
+                                        list.splice(idx, 1);
+                                        break;
+                                    }
+                                }
+                            }
+//							if(!flag){
+//							    list = $scope.onlineList;
+//                                for(var idx = 0; idx<list.length; idx++){
+//                                    var elem = list[idx];
+//                                    console.log(idx, elem);
+//                                    if(elem["device_serial"] === device["device_serial"]&&
+//                                        elem["device_model"] === device["device_model"] &&
+//                                        elem["device_name"] === device["device_name"]){
+//                                        flag = true;
+//                                        break;
+//                                    }
+//                                }
+//                                if(!flag)$scope.onlineList.push(device);
+//                            }
+
+						}else{
+
+						}
+					})
+					$scope.$on("socket:"+READY, function(){
+					    console.log("SERVER IS READY");
+                        socket.emit(REQUEST, {"type" : DEVICE_LIST});
+					    setInterval(function(){socket.emit(REQUEST, {"type" : DEVICE_LIST});}, 10000);
 
 					});
+//                    $scope.$on("socket:"+ONLINE, function(e, data){
+//						console.log()
+//					});
 
 				});
 			});
+
 		</script>
 	</body>
 </html>

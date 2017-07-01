@@ -85,18 +85,21 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 /********************* User Defined Data Structure ***********************/
-function Member(client){
-  var webUser;
+function Member(){
+  var webUser = null;
   var devices = new Map();
-  webUser = client;
+
   this.getUser = function(){
     return webUser;
   };
   this.setUser = function(s){
       webUser = s;
   };
+  this.addDevice = function(key, socket){
+    devices.set(key, socket);
+  };
   this.getDevices = function(){
-
+    return devices;
   };
   this.removeDevice = function(key){
     return devices.delete(key);
@@ -123,6 +126,8 @@ C_CONNECT = "connection";
 DATA = "data";
 REQUEST = "request";
 RESPONSE = "response";
+ONLINE = "online";
+OFFLINE = "offline";
 
 TYPE_DEVICE_LIST = "device_list";
 var userTable = new Map();
@@ -132,39 +137,49 @@ var User = require("./models/user");
 var wNum = 0;
 console.log("===== WebSocket Server Start =====");
 io.use(sharedsession(session));
+
+// Web Browser Connect!
 io.on(C_CONNECT, function(client){
   console.log("=> Client Connect!");
-  initClient(client);
-
+  initClient(client);     // Initialize Client Event
 });
 
 function initClient(client){
-    var userKey = client.handshake.session.userInfo.user_id;
+    console.log("==> Initialize Client Event!");
+    if(!client.handshake.session.userInfo) return;
+    var userKey = client.handshake.session.userInfo.mem_id;
   //  client.set("user_num", "wClient_"+wNum);
   //  wNum++;
+
     var member = null;
+    console.log("user key", userKey);
     if(userTable.has(userKey)){
-        member = userTable(userKey);
+        console.log("EXIST WSOCKET USER");
+        member = userTable.get(userKey)
         var tmp = member.getUser();
         member.setUser(client);
     }else{
-        member = new Member(client);
+        console.log("NOT WSOCKET USER");
+        member = new Member();
+        member.setUser(client);
         userTable.set(userKey, member);
     }
-  console.log("==> Initialize Client Event!");
-  console.log(client.handshake.session.userInfo);
-  client.emit("packet", {userData : client.handshake.session.userInfo});
-  client.on(DATA, function(data){
-      // if("data")
-  });
-  client.on(REQUEST, function(data){
-    if(data["type"] == TYPE_DEVICE_LIST){
-      console.log("device_list");
-    }
-  });
+
+
+    client.on(DATA, function(data){
+        // if("data")
+    });
+    client.on(REQUEST, function(data){
+      if(data["type"] === TYPE_DEVICE_LIST){
+        console.log("device_list");
+        notifyOnlineDevices(userKey);
+      }
+    });
+    client.emit("ready", {userData : client.handshake.session.userInfo});
 }
 /******************** TCP Server Section *********************/
 LOGIN = "login";
+LOGOUT = "logout";
 
 console.log("===== TCP Server Start =====");
 var myServer = net.createServer();      // 소켓서버 생성
@@ -176,48 +191,198 @@ myServer.on("connection", function(socket){
 
   // 메시지 데이터 핸들링
   socket.on("data", function(recv_buf){
+
+    // Parse JSON receive string from android
     var data = JSON.parse(recv_buf.toString());
-    if(data["type"] == LOGIN){
+    console.log("data : ", data);
+    // TYPE : LOGIN
+    if(data["type"] === LOGIN){
       console.log("===> Recv : "+LOGIN);
-      var email = data["user_id"];
-      var pwd = data["user_pwd"];
-      tcpLogin(data, socket);
+      tcpLogin(data, socket);   // Call android login
+    }else if(data["type"] === LOGOUT){
+
     }
   });
-
+  socket.on("close", function(){
+      console.log("TCP Socket Close");
+      if(socket.mySerial){
+        // var member = userTable.get(socket.myUserKey);
+        // member.removeDevice(socket.mySerial);
+        // console.log("delete online list");
+      }
+  });
 });
 
 // 로그인 함수 구현
 function tcpLogin(data, socket){
     var email = data["user_id"];
     var pwd = data["user_pwd"];
-    // var deviceModel = data["device_model"];
-    var deviceSerial = data["device_serial"];
 
+    var deviceModel = data["device_model"];
+    var deviceSerial = data["device_serial"];
+    var deviceName = data["device_name"];
+
+    // Mongo db Model Query
     var query = User.find({"user_id" : email});
+
+    // Query Result
     query.then(
         function(result){
-          var rs = result[0];
           var buff = null;
-          if(hash.verify(pwd, rs["user_pwd"])){
-              var resData = new ResponseData("response:login", 200, "Success Login!");
-              resData.setData(null);
-              console.log(JSON.stringify(resData));
-              buff = new Buffer(JSON.stringify(resData), "UTF-8");
-              var member = userTable.get(email);
 
-          }else{
+          // 존재하지 않는 계정인가?
+          if(result.length === 0){
               var resData = new ResponseData("response:login", 400, "Incorrect! User Email or Password!");
               resData.setData(null);
               console.log(JSON.stringify(resData));
               buff = new Buffer(JSON.stringify(resData), "UTF-8");
+          }else {
+              var rs = result[0];
+
+              // Check User Account Password
+              if (hash.verify(pwd, rs["user_pwd"])) {
+                  socket.mySerial = deviceSerial;
+                  socket.myUserKey = email;
+                  // Set Response Data
+                  var resData = new ResponseData("response:login", 200, "Success Login!");
+                  resData.setData(null);
+                  console.log(JSON.stringify(resData));
+                  buff = new Buffer(JSON.stringify(resData), "UTF-8");
+
+                  // Set TCP Client to the User Table of Server
+                  var member;
+                  // if User table has email then
+                  console.log("email : ", email);
+                  if(userTable.has(email)) {
+                      // 현재 UserTable에 해당계정이 등록되어있다면
+                      // UserTable에 Client를 추가한다
+                      console.log("Has User Table");
+                      member = userTable.get(email);
+                      member.addDevice(deviceSerial,
+                      {   "socket" : socket,
+                          "info" : {
+                              "device_name"     :   deviceName,
+                              "device_model"    :   deviceModel,
+                              "device_serial"   :   deviceSerial
+                          }
+                      });
+                  }else{
+                      // 현재 UserTable에 해당계정이 등록되어 있지 않다면
+                      // UserTable에 member를 생성하고 UserTable에 등록한다
+                      console.log("Not Has User Table");
+                      member = new Member();
+                      member.addDevice(deviceSerial,
+                          {   "socket" : socket,
+                              "info" : {
+                                  "device_name"     :   deviceName,
+                                  "device_model"    :   deviceModel,
+                                  "device_serial"   :   deviceSerial
+                              }
+                          });
+
+                      userTable.set(email, member);
+                  }
+
+                  // DB로부터 계정정보를 가져온다
+                  var select = User.findOne({"user_id": email});
+
+                  // 조회 결과문
+                  select.then(
+                      function (doc) {
+                          var flag = false;
+                          console.log(doc["user_devices"]);
+                          var dList = doc["user_devices"];
+                          var obj = null;
+
+                          // 현재 접속한 디바이스가 내계정에 등록되었는지 확인
+                          for(var idx = 0; idx < dList.length; idx++){
+                              var row = dList[idx];
+                              if(row["device_serial"] === deviceSerial &&
+                                  row["device_name"] === deviceName &&
+                                  row["device_model"] === deviceModel){
+                                      flag = true;
+                                      obj = row;
+                                      break;
+                              }
+                          }
+
+                          // 등록한 적이 없다면 추가하고 끝낸다.
+                          if(!flag){
+                              obj = {
+                                  "device_name"     :   deviceName,
+                                  "device_model"    :   deviceModel,
+                                  "device_serial"   :   deviceSerial
+                              };
+                              // UPDATE Document
+                              doc["user_devices"].push(obj);
+                              doc.save();
+                          }
+
+                          // send online device to web browser
+                         // notifyOnlineDevices(email);
+
+                      },
+                      function (err) {}
+                  );
+
+              } else {
+                  // 비밀번호가 틀렸을 경우
+                  var resData = new ResponseData("response:login", 400, "Incorrect! User Email or Password!");
+                  resData.setData(null);
+                  console.log(JSON.stringify(resData));
+                  buff = new Buffer(JSON.stringify(resData), "UTF-8");
+              }
           }
 
+          // 응답값 송신
           socket.write(buff);
+
         },
         function(err){
           console.log("login error", err);
         }
     );
+}
+// 웹브라우저에게 현재 Online중인 디바이스들을 알려준다.
+function notifyOnlineDevices(email){
+    var member = userTable.get(email);
+    if(member){
+        var wBrowser = member.getUser();
+        if(wBrowser){
+            console.log("wBrower is Exist");
+            var dList = member.getDevices();
+            var dataList = [];
+            console.log("myDeivce  : ");
+            // for([key, val] in dList){
+            //     console.log("deivce : ", k);
+            //     var wSocket = val["socket"];
+            //     var deviceInfo = val["deviceInfo"];
+            //     wSocket.emit(RESPONSE, { type : DEVICE_LIST , device : deviceInfo });
+            // }
+            var itr = dList.values();
+
+            while((val = itr.next().value)){
+                // var val = itr.value;
+               // console.log("test", val);
+                var wSocket = val["socket"];
+                var deviceInfo = val["info"];
+                dataList.push(deviceInfo);
+            }
+            console.log("dList : ", dataList);
+            wBrowser.emit("response", { type : TYPE_DEVICE_LIST, device : dataList });
+            // for(var val of dList){
+            //     console.log("test", val);
+            //     var wSocket = val["socket"];
+            //     var deviceInfo = val["info"];
+            //     dataList.push(deviceInfo);
+            // }
+
+            // dList.forEach( function(val, idx){
+            //     var wSocket = val["socket"];
+            //     var deviceInfo = val["info"];
+            //     wBrowser.emit("response", { type : TYPE_DEVICE_LIST, device : deviceInfo });
+            // });
+        }
+    }
 }
 module.exports = app;
