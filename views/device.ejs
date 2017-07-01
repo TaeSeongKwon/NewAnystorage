@@ -114,19 +114,33 @@
 				uploader.attachEvent("onAfterFileAdd", function(item, response){
 					// 파일 업로드 이벤트 : 업로드 하고자 하는 파일을 선택 하고 났을때 발생한다
 				});
+
 				component.attachEvent("onAfterCreateFolder", function(id){
 				    // 폴더 생성이 되고 났을때 호출되는 이벤트를 핸들링한다
 					console.log(">> EVENT CALL : onAfterCreateFolder");
+                    var path = component.getPath(id);
+					var mkDirPath = getRealPath(1, path.length, path);
+
+					console.log("create folder path : ", mkDirPath);
+                    $$('files').showProgress();
+					$$('files').getMenu().hide();
+
+					return false;
 				});
-				component.attachEvent("onFolderSelect", function(id){
-				    // 디렉토리를 선택했을 때 발생하는 이벤트
-                    console.log(">> EVENT CALL : onFolderSelect");
-					console.log("select : ", id);
-				});
+
 				//
 				component.attachEvent('onBeforeEditStop', function(id, state, view){
 					// 파일 또는 디렉토리의 이름이 변경을 완료 했을때 발생하는 이벤트
                     console.log(">> EVENT CALL : onBeforeEditStop");
+                    var path = component.getPath(id);
+                    var newPath = getRealPath(1, path.length-1, path);
+					var oldPath = getRealPath(1, path.length-1, path);
+
+					newPath += state.value;
+					oldPath += state.old;
+                    console.log("old Path : ", oldPath);
+					console.log("new Path : ", newPath);
+					$$("files").showProgress();
 				});
 				component.attachEvent("onBeforeMarkCopy", function(ids){
 					// context 메뉴에서 선택한 파일또는 디렉토리를 복사히기를 선택했을 때 발생하는 이벤트
@@ -152,6 +166,12 @@
 					// 파일을 실행 하고자 할때 발생하는 이벤트이며 이 때는 다운로드를 실시한다.
                     console.log(">> EVENT CALL : onAfterRun");
 				});
+            	function getRealPath(start, length, list){
+            	    var path = "/";
+            	    for(var idx = start; idx<length; idx++)
+                        path += (component.getItem(list[idx]).value + "/");
+					return path;
+				}
 			/* ======= End Manager Event Handling ======== */
 			<!--var socket = io.connect("<%=server_addr%>:9900", {timeout : (1000*60*30)});-->
 
