@@ -146,7 +146,9 @@ io.on(C_CONNECT, function(client){
 
 function initClient(client){
     console.log("==> Initialize Client Event!");
-    if(!client.handshake.session.userInfo) return;
+    if(!client.handshake.session.userInfo) {
+        return;
+    }
     var userKey = client.handshake.session.userInfo.mem_id;
   //  client.set("user_num", "wClient_"+wNum);
   //  wNum++;
@@ -167,7 +169,39 @@ function initClient(client){
 
 
     client.on(DATA, function(data){
-        // if("data")
+        console.log("PACKET : ", data);
+
+        var deviceSerial = data["device"];
+        // 세션에 있는 사용자 아이디를 가져온다
+        var clientKey = client.handshake.session.userInfo.mem_id;
+
+        // 세션이 남아 있는가 체크
+        if(clientKey){
+            var member = userTable.get(clientKey);
+            if(member){
+                var devices = member.getDevices();
+                if(devices.has(deviceSerial)){      // 현재 사용자의 기기가 존재하는가???
+                    var device = devices.get(deviceSerial);         // 디바이스 가져오기
+                    var dSocket = device["socket"];                 // 디바이스가 연결된 소켓을 가져온다
+                    var reqData = data["data"];
+                    dSocket.write(JSON.stringify(reqData));         // 데이터를 받는다.
+
+                    /*
+
+                        {
+                            "device" : "adsfasdfew324"
+                            "data" : {
+                                "type"      :       "filetree"
+                            }
+                        }
+                     */
+                }else{                               // 사용자의 기기가 존재 하지 않을경우
+                    // 디바이스가 없다라는 메시지를 보낸다.
+                }
+            }
+        }else{
+            // 세션이 만료되어 메인페이지로 돌아가는 메시지를 보낸다
+        }
     });
     client.on(REQUEST, function(data){
       if(data["type"] === TYPE_DEVICE_LIST){
@@ -318,9 +352,6 @@ function tcpLogin(data, socket){
                               doc.save();
                           }
 
-                          // send online device to web browser
-                         // notifyOnlineDevices(email);
-
                       },
                       function (err) {}
                   );
@@ -343,6 +374,8 @@ function tcpLogin(data, socket){
         }
     );
 }
+
+
 // 웹브라우저에게 현재 Online중인 디바이스들을 알려준다.
 function notifyOnlineDevices(email){
     var member = userTable.get(email);
@@ -353,12 +386,7 @@ function notifyOnlineDevices(email){
             var dList = member.getDevices();
             var dataList = [];
             console.log("myDeivce  : ");
-            // for([key, val] in dList){
-            //     console.log("deivce : ", k);
-            //     var wSocket = val["socket"];
-            //     var deviceInfo = val["deviceInfo"];
-            //     wSocket.emit(RESPONSE, { type : DEVICE_LIST , device : deviceInfo });
-            // }
+
             var itr = dList.values();
 
             while((val = itr.next().value)){
@@ -370,18 +398,7 @@ function notifyOnlineDevices(email){
             }
             console.log("dList : ", dataList);
             wBrowser.emit("response", { type : TYPE_DEVICE_LIST, device : dataList });
-            // for(var val of dList){
-            //     console.log("test", val);
-            //     var wSocket = val["socket"];
-            //     var deviceInfo = val["info"];
-            //     dataList.push(deviceInfo);
-            // }
 
-            // dList.forEach( function(val, idx){
-            //     var wSocket = val["socket"];
-            //     var deviceInfo = val["info"];
-            //     wBrowser.emit("response", { type : TYPE_DEVICE_LIST, device : deviceInfo });
-            // });
         }
     }
 }
