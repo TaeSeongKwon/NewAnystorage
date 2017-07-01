@@ -49,45 +49,48 @@
 			</div>
 		</section>
 		<script type="text/javascript">
+
+            // Defined Communication PACKET Data Structure
+            function Packet(device, data){
+                this.device = device;
+                this.data = data;
+            }
+            Packet.prototype.data = null;
+            Packet.prototype.device = null;
+
+            // Defined FileManager Data Structuire
+            function Manager(){};
+            Manager.prototype.fileTree = null;
+
+
+			/* ============ User Define Data ============== */
             var mem_id = "<%=userInfo.mem_id%>";
             var device = "<%=device_model%>";
 
-
 			CONNECT = "connect";
 			DATA = "data";
-
-			//
 			FILE_TREE = "file_tree";
 
-			// Defined Communication PACKET Data Structure
-			function Packet(device, data){
-				this.device = device;
-				this.data = data;
-			}
-			Packet.prototype.data = null;
-			Packet.prototype.device = null;
+            var component = webix.ui({
+                container:"manager",
+                view:"filemanager",
+                id:"files"
+            });
 
-			// Defined FileManager Data Structuire
-			function Manager(){};
-			Manager.prototype.fileTree = null;
+            var uploader = component.getUploader();
+            var commander = new Manager();
+            var socket = io.connect({timeout : (1000*60*30)});
 
 
 			// $("body").faLoading('fa-refresh');
 
+//            webix.ready(function(){
 
+//            });
 
-
-            webix.ready(function(){
-                webix.ui({
-                    container:"manager",
-                    view:"filemanager",
-                    id:"files"
-                });
-            });
-			var commander = new Manager();
 
 			// Connect to Server
-            var socket = io.connect({timeout : (1000*60*30)});
+
 
             /* ======= Communication Event Handling ===== */
 				socket.on(CONNECT, function(){
@@ -96,14 +99,52 @@
 				});
 
 				socket.on(DATA, function(data){
+				    console.log("===> Recv("+DATA+") : ", data);
 					switch(data["type"]){
 						case FILE_TREE :
-
+						    var tree = data["data"];
+                            $$("files").parse(tree);
 							break;
 					}
 				});
             /* ======= End Communication Event Handling ======= */
 
+			/* ======= File Manager Event Handling ======== */
+
+				uploader.attachEvent("onAfterFileAdd", function(item, response){
+					// 파일 업로드 이벤트 : 업로드 하고자 하는 파일을 선택 하고 났을때 발생한다
+				});
+				component.attachEvent("onAfterCreateFolder", function(id){
+				    // 폴더 생성이 되고 났을때 호출되는 이벤트를 핸들링한다
+					console.log(">> EVENT CALL : onAfterCreateFolder");
+				});
+				component.attachEvent("onFolderSelect", function(id){
+				    // 디렉토리를 선택했을 때 발생하는 이벤트
+					console.log("select : ", id);
+				});
+				//
+				component.attachEvent('onBeforeEditStop', function(id, state, view){
+					// 파일 또는 디렉토리의 이름이 변경을 완료 했을때 발생하는 이벤트
+				});
+				component.attachEvent("onBeforeMarkCopy", function(ids){
+					// context 메뉴에서 선택한 파일또는 디렉토리를 복사히기를 선택했을 때 발생하는 이벤트
+				});
+            	component.attachEvent("onBeforeMarkCut", function(ids){
+					// 선택한 파일 또는 디렉토리의 context메뉴에서 잘라내기를 선택했을 때 발생하는 이벤트
+				});
+            	component.attachEvent("onBeforePasteFile", function(id){
+					// 복사 또는 잘라내기를 통하여 붙여넣기를 했을 경우 발생하는 이벤트
+				});
+            	component.attachEvent("onBeforeDeleteFile", function(ids){
+					// 파일 또는 디렉토리를 삭제했을 때 발생하는 이벤
+				});
+            	component.attachEvent("onBeforeUploadFile", function(id){
+					// 파일업로드가 끝났을 경우 발생하는 이벤트
+				});
+            	component.attachEvent("onAfterRun", function(id){
+					// 파일을 실행 하고자 할때 발생하는 이벤트이며 이 때는 다운로드를 실시한다.
+				});
+			/* ======= End Manager Event Handling ======== */
 			<!--var socket = io.connect("<%=server_addr%>:9900", {timeout : (1000*60*30)});-->
 
 
@@ -292,6 +333,7 @@
 //				// console.log("up ;", uploader.hasEvent("onAfterFileAdd"));
 //				// uploader.detachEvent("onAfterFileAdd");
 //				// console.log("up ;", uploader.hasEvent("onAfterFileAdd"));
+
 //				uploader.attachEvent("onAfterFileAdd", function(item, response){
 //					console.log("upload!!!!", item);
 //					var size = 0;
@@ -325,7 +367,7 @@
 //					// ss.emit("fileUpload", )
 //					// return false;
 //				});
-//
+//				%%%%
 //				manager.attachEvent("onAfterCreateFolder", function(id){
 //					console.log("kts :L ", id);
 //					var path = manager.getPath(id);
@@ -349,9 +391,11 @@
 //					return false;
 //
 //				});
+//				%%%
 //				manager.attachEvent("onFolderSelect", function(id){
 //					console.log("select : ", id);
 //				});
+//				%%%
 //				manager.attachEvent('onBeforeEditStop', function(id, state, view){
 //					var newPath = "/";
 //					var oldPath = "/";
@@ -366,19 +410,22 @@
 //					socket.emit("request_rename", {oldName : oldPath, newName : newPath});
 //
 //				});
+//				%%%
 //				manager.attachEvent("onBeforeMarkCopy", function(ids){
 //					console.log("copy");
 //					isCopy = true;
 //					isCut = false;
 //					fileInput(ids);
 //				});
+
+//				%%%
 //				manager.attachEvent("onBeforeMarkCut", function(ids){
 //					console.log("cut");
 //					isCut = true;
 //					isCopy = false;
 //					fileInput(ids);
 //				});
-//
+//				%%%
 //				manager.attachEvent("onBeforePasteFile", function(id){
 //					newFileInput(id);
 //					console.log("new Path =", newPath);
@@ -409,6 +456,7 @@
 //						}
 //					}
 //				});
+//				%%%
 //				manager.attachEvent("onBeforeDeleteFile", function(ids){
 //					var fileList = [];
 //					if(typeof ids === "string" )
@@ -450,6 +498,7 @@
 //
 //					return false;
 //				});
+//				%%%%
 //				manager.attachEvent("onBeforeUploadFile", function(id){
 //					console.log("kts", id);
 //					var path = $$("files").getPath(id);
@@ -476,6 +525,8 @@
 //					console.log("context : ", context);
 //					console.log("ev : ", ev);
 //				});
+
+//				%%%
 //				manager.attachEvent("onAfterRun", function(id){
 //					console.log("file open");
 //					// if($$("files").getItem(id).type == "Folder"){

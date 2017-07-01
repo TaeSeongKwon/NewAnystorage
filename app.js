@@ -235,6 +235,10 @@ myServer.on("connection", function(socket){
       tcpLogin(data, socket);   // Call android login
     }else if(data["type"] === LOGOUT){
 
+    }else if(data["type"] === DATA){
+        console.log("===> Recv"+DATA, data["data"]);
+        var packet = data["data"];
+        sendData(packet, socket);
     }
   });
   socket.on("close", function(){
@@ -246,7 +250,22 @@ myServer.on("connection", function(socket){
       }
   });
 });
+// 데이터 전송 구현
+function sendData(packet, socket){
+    var key = socket.myUserKey;
+    var member = null;
+    if(userTable.has(key)){
+        member = userTable.get(key);
+        var wSocket = member.getUser();
+        if(wSocket){
+            wSocket.emit(DATA, packet);
+        }else{
 
+        }
+    }else{
+
+    }
+}
 // 로그인 함수 구현
 function tcpLogin(data, socket){
     var email = data["user_id"];
