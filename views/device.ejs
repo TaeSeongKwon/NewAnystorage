@@ -120,29 +120,37 @@
 				});
 				component.attachEvent("onFolderSelect", function(id){
 				    // 디렉토리를 선택했을 때 발생하는 이벤트
+                    console.log(">> EVENT CALL : onFolderSelect");
 					console.log("select : ", id);
 				});
 				//
 				component.attachEvent('onBeforeEditStop', function(id, state, view){
 					// 파일 또는 디렉토리의 이름이 변경을 완료 했을때 발생하는 이벤트
+                    console.log(">> EVENT CALL : onBeforeEditStop");
 				});
 				component.attachEvent("onBeforeMarkCopy", function(ids){
 					// context 메뉴에서 선택한 파일또는 디렉토리를 복사히기를 선택했을 때 발생하는 이벤트
+                    console.log(">> EVENT CALL : onBeforeMarkCopy");
 				});
             	component.attachEvent("onBeforeMarkCut", function(ids){
 					// 선택한 파일 또는 디렉토리의 context메뉴에서 잘라내기를 선택했을 때 발생하는 이벤트
+                    console.log(">> EVENT CALL : onBeforeMarkCut");
 				});
             	component.attachEvent("onBeforePasteFile", function(id){
 					// 복사 또는 잘라내기를 통하여 붙여넣기를 했을 경우 발생하는 이벤트
+                    console.log(">> EVENT CALL : onBeforePasteFile");
 				});
             	component.attachEvent("onBeforeDeleteFile", function(ids){
-					// 파일 또는 디렉토리를 삭제했을 때 발생하는 이벤
+					// 파일 또는 디렉토리를 삭제했을 때 발생하는 이벤트
+                    console.log(">> EVENT CALL : onFolderSelect");
 				});
             	component.attachEvent("onBeforeUploadFile", function(id){
 					// 파일업로드가 끝났을 경우 발생하는 이벤트
+                    console.log(">> EVENT CALL : onBeforeUploadFile");
 				});
             	component.attachEvent("onAfterRun", function(id){
 					// 파일을 실행 하고자 할때 발생하는 이벤트이며 이 때는 다운로드를 실시한다.
+                    console.log(">> EVENT CALL : onAfterRun");
 				});
 			/* ======= End Manager Event Handling ======== */
 			<!--var socket = io.connect("<%=server_addr%>:9900", {timeout : (1000*60*30)});-->
