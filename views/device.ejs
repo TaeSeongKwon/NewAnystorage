@@ -1,3 +1,4 @@
+
 <% include ./Handler/header %>
 		<script src="/socket.io/socket.io.js"></script>
 		<script src="/js/socket.io-stream.js"></script>
@@ -59,9 +60,44 @@
             Packet.prototype.device = null;
 
             // Defined FileManager Data Structuire
-            function Manager(){};
+            function Manager(){}
             Manager.prototype.fileTree = null;
-
+            Manager.prototype.setCopyNCut = function(copy, cut){
+                this._isCopy = copy;
+                this._isCut = cut;
+			}
+			Manager.prototype.isCopy = function(){ return this._isCopy; }
+			Manager.prototype.isCut = function(){ return this._isCut; }
+//			Manager.prototype.setFilePathList = function(list){
+//			    this._filePathList = list;
+//			}
+//            Manager.prototype.getFilePathList = function(){
+//                return this._filePathList;
+//            }
+            Manager.prototype.setFileNameList = function(list){
+				this._fileNameList = list;
+			}
+			Manager.prototype.getFileNameList = function(){
+                return this._fileNameList;
+			}
+            Manager.prototype.setDestPath = function(path){
+                this._destPath = path;
+            }
+            Manager.prototype.getDestPath = function(){
+                return this._destPath;
+            }
+			Manager.prototype.setSourcePath = function(path){
+			    this._srcPath = path;
+			}
+            Manager.prototype.getSourcePath = function(){
+				return this._srcPath;
+            }
+//            Manager.prototype._filePathList = null;
+            Manager.prototype._isCopy = false;
+            Manager.prototype._isCut = false;
+            Manager.prototype._fileNameList = null;
+			Manager.prototype._srcPath = null;
+			Manager.prototype._destPath = null;
 
 			/* ============ User Define Data ============== */
             var mem_id = "<%=userInfo.mem_id%>";
@@ -103,7 +139,7 @@
 					switch(data["type"]){
 						case FILE_TREE :
 						    var tree = data["data"];
-                            $$("files").parse(tree);
+                            component.parse(tree);
 							break;
 					}
 				});
@@ -114,7 +150,9 @@
 				uploader.attachEvent("onAfterFileAdd", function(item, response){
 					// 파일 업로드 이벤트 : 업로드 하고자 하는 파일을 선택 하고 났을때 발생한다
 				});
-
+				/**
+				 * @command complete
+				 */
 				component.attachEvent("onAfterCreateFolder", function(id){
 				    // 폴더 생성이 되고 났을때 호출되는 이벤트를 핸들링한다
 					console.log(">> EVENT CALL : onAfterCreateFolder");
@@ -122,13 +160,18 @@
 					var mkDirPath = getRealPath(1, path.length, path);
 
 					console.log("create folder path : ", mkDirPath);
-                    $$('files').showProgress();
-					$$('files').getMenu().hide();
 
+					// TODO 조금있다가 풀어준다
+//                    component.showProgress();
+
+					component.getMenu().hide();
+					// 메시지를 송신한다
 					return false;
 				});
 
-				//
+				/**
+				 * @command complete
+				 */
 				component.attachEvent('onBeforeEditStop', function(id, state, view){
 					// 파일 또는 디렉토리의 이름이 변경을 완료 했을때 발생하는 이벤트
                     console.log(">> EVENT CALL : onBeforeEditStop");
@@ -140,39 +183,181 @@
 					oldPath += state.old;
                     console.log("old Path : ", oldPath);
 					console.log("new Path : ", newPath);
-					$$("files").showProgress();
+					// TODO 조금있다가 풀어줍니다
+//					component.showProgress();
+
+					// 메시지를 송신한다.
 				});
-				component.attachEvent("onBeforeMarkCopy", function(ids){
+				/**
+				 * @command complete
+				 */
+				component.attachEvent("onBeforeMarkCopy", function(item_ids){
 					// context 메뉴에서 선택한 파일또는 디렉토리를 복사히기를 선택했을 때 발생하는 이벤트
                     console.log(">> EVENT CALL : onBeforeMarkCopy");
+                    var obj = getFilePathList(item_ids);
+
+                    commander.setCopyNCut(true, false);
+//					commander.setFilePathList(obj["fileList"]);
+					commander.setFileNameList(obj["fileNameList"]);
+					commander.setSourcePath(obj["srcFilePath"]);
+
+					console.log("isCopy : ", commander.isCopy());
+                    console.log("isCut : ", commander.isCut());
+                    console.log("src path : ", commander.getSourcePath());
+                    console.log("file name list : ", commander.getFileNameList());
+
 				});
-            	component.attachEvent("onBeforeMarkCut", function(ids){
+				/**
+				 * @command complete
+				 */
+            	component.attachEvent("onBeforeMarkCut", function(item_ids){
 					// 선택한 파일 또는 디렉토리의 context메뉴에서 잘라내기를 선택했을 때 발생하는 이벤트
                     console.log(">> EVENT CALL : onBeforeMarkCut");
+                    var obj = getFilePathList(item_ids);
+
+                    commander.setCopyNCut(false, true);
+//                    commander.setFilePathList(obj["fileList"]);
+                    commander.setFileNameList(obj["fileNameList"]);
+                    commander.setSourcePath(obj["srcFilePath"]);
+
+                    console.log("isCopy : ", commander.isCopy());
+                    console.log("isCut : ", commander.isCut());
+                    console.log("src path : ", commander.getSourcePath());
+                    console.log("file name list : ", commander.getFileNameList());
+
 				});
-            	component.attachEvent("onBeforePasteFile", function(id){
+
+				/**
+				 * @command complete
+				 */
+            	component.attachEvent("onBeforePasteFile", function(item){
 					// 복사 또는 잘라내기를 통하여 붙여넣기를 했을 경우 발생하는 이벤트
                     console.log(">> EVENT CALL : onBeforePasteFile");
+
+                    var list = null;
+
+                    if(typeof item ==="string") list  = component.getPath(item);
+                    else list = component.getPath(item[0]);
+
+                    var destPath = getRealPath(1, list.length-1, list);
+					var srcPath = commander.getSourcePath();
+					var fileNameList = commander.getFileNameList();
+
+					console.log("src path : ", srcPath);
+                    console.log("dest path : ", destPath);
+
+					if(srcPath === destPath){
+                        alert("같은 곳에는 붙여 넣을 수 없습니다!");
+					}else{
+					    var srcFiles = [];
+						var destFiles = [];
+						var isCopy = commander.isCopy();
+						var isCut = commander.isCut();
+						for(var idx = 0; idx<fileNameList.length; idx++){
+						    var fileName = fileNameList[idx];
+						    srcFiles.push(srcPath+fileName);
+                            destFiles.push(destPath+fileName);
+						}
+
+
+						// 복사를 했을 경우
+                        if(!isCut && isCopy){
+							// $$("files").showProgress();
+							console.log("Copy Paste");
+                            component.showProgress();
+
+//							socket.emit("request_copy_paste", reqData);
+							// socket.emit("request_cop")
+
+						// 잘라내기를 했을경우
+						}else if(isCut && !isCopy){
+							component.showProgress();
+							console.log("Cut Paste");
+//							socket.emit("request_cut_paste", reqData);
+						}
+					}
+
 				});
-            	component.attachEvent("onBeforeDeleteFile", function(ids){
+
+				/**
+				 * @command complete
+				 */
+            	component.attachEvent("onBeforeDeleteFile", function(items){
 					// 파일 또는 디렉토리를 삭제했을 때 발생하는 이벤트
                     console.log(">> EVENT CALL : onFolderSelect");
+                    var obj = getFilePathList(items);
+                    var path = obj["srcFilePath"];
+                    var fileNames = obj["fileNameList"];
+                    var rmFileList = [];
+                    for(var idx = 0; idx< fileNames.length; idx++){
+                        rmFileList.push(path+fileNames[idx]);
+					}
+					component.getMenu().hide();
+					if(confirm(rmFileList.length+"개 파일을 정말 삭제하시겠습니까?")){
+						console.log("list : ", rmFileList);
+                        component.showProgress();
+                        // 파일 삭제 패킷 작성뒤 송신한다.
+						//	socket.emit("request_rm", {rmPaths : rmList});
+					}
+
+					return false;
 				});
+
+
             	component.attachEvent("onBeforeUploadFile", function(id){
 					// 파일업로드가 끝났을 경우 발생하는 이벤트
                     console.log(">> EVENT CALL : onBeforeUploadFile");
+
 				});
+
+
             	component.attachEvent("onAfterRun", function(id){
 					// 파일을 실행 하고자 할때 발생하는 이벤트이며 이 때는 다운로드를 실시한다.
                     console.log(">> EVENT CALL : onAfterRun");
 				});
+
+
             	function getRealPath(start, length, list){
             	    var path = "/";
             	    for(var idx = start; idx<length; idx++)
                         path += (component.getItem(list[idx]).value + "/");
 					return path;
 				}
+            	function getFilePathList(items){
+                    var list = [];
+                    var fileNameList = [];
+//                    var fileList = [];
+
+                    // 파일이 하나인가 다수인가?
+                    if( typeof(items) === "string") list.push(items);
+                    else list = items;
+
+                    var path = "/";
+                    var itemPaths = component.getPath(list[0]);
+                    for(var idx = 1; idx< itemPaths.length-1; idx++){
+                        path += (component.getItem(itemPaths[idx]).value + "/");
+                    }
+
+                    // 파일이 여러개 일수도 있으므로 중첩 반복문을 쓴다
+                    for(var row = 0; row < list.length; row++){
+                        // 파일 목록의 하나의 요소를 가져온다.
+                        itemPaths = component.getPath(list[0]);
+                        // 파일경로 및 최종 파일명을 추가한다
+						var fileName = component.getItem(itemPaths[itemPaths.length-1]).value;
+//                        fileList.push(path+fileName);
+                        fileNameList.push(fileName);
+                    }
+
+                    return {
+                        "fileNameList" 	: fileNameList,
+						"srcFilePath"	: path
+					};
+				}
 			/* ======= End Manager Event Handling ======== */
+
+
+
+			// 2016. 09. 01 Create by KTS.
 			<!--var socket = io.connect("<%=server_addr%>:9900", {timeout : (1000*60*30)});-->
 
 
