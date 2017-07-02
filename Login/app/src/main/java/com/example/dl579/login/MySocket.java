@@ -1,6 +1,5 @@
 package com.example.dl579.login;
 
-
 import java.net.Socket;
 
 /**
@@ -9,12 +8,12 @@ import java.net.Socket;
 
 class MySocket {
     static  Socket socket = null;
-   static  String IP = "192.168.43.153";
+   static  String IP = "192.168.43.229";
     private static final MySocket ourInstance = new MySocket();
 
     static MySocket getInstance() {
         try {
-            socket = new Socket(IP, 7723);
+            socket = new Socket("192.168.43.229",9900);
         }
         catch (Exception e)
         {

@@ -36,6 +36,7 @@ import android.content.SharedPreferences;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,7 +74,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     Send Login = null;
     SharedPreferences test;
     SharedPreferences.Editor editor;
-    Receive receive;
+    Send receive;
     MySocket msocket ;
     static Thread t1;
     @Override
@@ -91,19 +92,17 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 try {
                     test = getSharedPreferences("test", MODE_PRIVATE);
                     editor = test.edit();
+                    Log.e("Log m_android :", m_androidId);
                     msocket = MySocket.getInstance();
-                    Log.e("Log :", m_androidId);
                     Log.e("Log :", Build.SERIAL);
                     Log.e("Log :", test.getString("Id", ""));
                     Log.e("Log :", test.getString("Password", ""));
-                    receive = new Receive(msocket.socket);
+                    receive = new Send(msocket.socket);
                     receive.start();
                     if (!test.getString("Id", "").equals("") && !test.getString("Password", "").equals("")) {
                         Login = new Send(msocket.socket, test.getString("Id", ""), test.getString("Password", ""), m_androidId);
                         Login.start();
-
                     }
-
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -112,20 +111,12 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
          t1 = new Thread(new Runnable() {
                 @Override
                 public void run() {
-
-                        if (mung.equals("200")) {
-                            Log.e("Log e",mung);
                            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                             startActivity(intent);
                             finish();
-                        } else {
-                        Log.e("실행 ","XX");
-                        }
 
                 }
             });
-
-
 
         Connect.start();
         mPasswordView = (EditText) findViewById(R.id.password);
@@ -425,63 +416,78 @@ class Send extends Thread {
     String IdText;
     String passwordText;
     String msg1 ;
+    String receiveMessage;
     DataOutputStream out;
+    DataInputStream dataInputStream;
+    public Send(Socket socket) {
+        try {
+            this.socket = socket;
+            dataInputStream = new DataInputStream(socket.getInputStream());
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
     public Send(Socket socket, String Idtext,String passwordtext,String msg) {
         try {
             this.msg1 = msg;
             this.socket = socket;
             this.IdText = Idtext;
             this.passwordText = passwordtext;
+            out = new DataOutputStream(socket.getOutputStream());
         }
         catch(Exception e)
         {
             e.printStackTrace();
         }
     }
+
     public void run() {
-        try {
-            out = new DataOutputStream(socket.getOutputStream());
+
+            Thread thread = new Thread() {
+                public void run() {
+                    while(true) {
+                        try {
+                            byte arr[] = new byte[4096];
+                            int range = dataInputStream.read(arr);
+                            byte arr2[] = new byte[range];
+                            System.arraycopy(arr, 0, arr2, 0, range);
+                            receiveMessage = new String(arr2, "UTF-8");
+                            Log.e("receive", receiveMessage);
+                            JSONObject jsonObject = new JSONObject(receiveMessage);
+                            if (jsonObject.getInt("code") == 200)
+                                LoginActivity.t1.start();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            };
+
+        Thread thread2 = new Thread() {
+            public void run() {
+                try
+                {
                 JSONObject jobj = new JSONObject();
                 jobj.put("type", "login");
                 jobj.put("user_id", IdText);
                 jobj.put("user_pwd", passwordText);
-                jobj.put("device_name",msg1);
+                jobj.put("device_name", msg1);
                 jobj.put("device_serial", Build.SERIAL);
                 jobj.put("device_model", Build.MODEL);
-            out.write(jobj.toString().getBytes("UTF-8"));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-}
-class Receive extends Thread
-{
-    String receiveMessage;
-    Socket socket;
-    public  Receive(Socket socket)
-    {
-        this.socket = socket;
-    }
-
-    public void run() {
-        while(true) {
-            try {
-                DataInputStream dataInputStream;
-                dataInputStream = new DataInputStream(socket.getInputStream());
-                byte arr[] = new byte[4096];
-                int range = dataInputStream.read(arr);
-                byte arr2[] = new byte[range];
-                System.arraycopy(arr, 0, arr2, 0, range);
-                receiveMessage = new String(arr2, "UTF-8");
-                LoginActivity.mung = receiveMessage;
-                LoginActivity.t1.start();
-                /*JSONObject jsonObject = new JSONObject(receiveMessage);
-                Log.e("Log: ", ""+jsonObject.getInt("code"));*/
-            } catch (Exception e) {
-                e.printStackTrace();
+                out.write(jobj.toString().getBytes("UTF-8"));
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
             }
-        }
+        };
+        thread.start();
+        thread2.start();
     }
 }
+
 
 
