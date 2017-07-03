@@ -99,6 +99,23 @@
 			Manager.prototype._srcPath = null;
 			Manager.prototype._destPath = null;
 
+			Manager.prototype._isCoping = false;
+            Manager.prototype._isMoving = false;
+            Manager.prototype._isRename = false;
+            Manager.prototype._isMkdir = false;
+            Manager.prototype._isRemoving = false;
+            Manager.prototype.setCopyFlag = function(flag){ this._isCoping = flag; }
+            Manager.prototype.setMoveFlag = function(flag){ this._isMoving = flag; }
+            Manager.prototype.setMkdirFlag = function(flag){ this._isMkdir = flag; }
+            Manager.prototype.setRenameFlag = function(flag){ this._isRename = flag; }
+            Manager.prototype.setRemoveFlag = function(flag){ this._isRemoving = flag; }
+
+            Manager.prototype.getCopyFlag = function(){ return this._isCoping; }
+            Manager.prototype.getMoveFlag = function(){ return this._isMoving; }
+            Manager.prototype.getMkdirFlag = function(){ return this._isMkdir; }
+            Manager.prototype.getRenameFlag = function(){ return this._isRename; }
+            Manager.prototype.getRemoveFlag = function(){ return this._isRemoving; }
+
 			/* ============ User Define Data ============== */
             var mem_id = "<%=userInfo.mem_id%>";
             var device = "<%=device_model%>";
@@ -106,7 +123,16 @@
 			CONNECT = "connect";
 			DATA = "data";
 			FILE_TREE = "file_tree";
+            RESPONSE = "response";
 
+            MK_DIR = "mkdir";
+            RENAME = "rename";
+            COPY = "cp";
+            MOVE = "mv";
+            REMOVE = "rm";
+
+            SUCCESS = 200;
+            FAIL = 400;
             var component = webix.ui({
                 container:"manager",
                 view:"filemanager",
@@ -141,17 +167,79 @@
 						    var tree = data["data"];
                             component.parse(tree);
 							break;
+                        case RESPONSE :
+//                            var innerData = data["data"];
+                            responseHandler(data);
+                            break;
 					}
 				});
             /* ======= End Communication Event Handling ======= */
+            function responseHandler(data){
+                switch(data["to"]){
+                    case MK_DIR :
+                        if(commander.getMkdirFlag()){
+                            if(data["code"] === SUCCESS){
 
+                            }else{
+                                alert("폴더를 생성하는데 실패했습니다");
+                            }
+                            component.hideProgress();
+                            commander.setMkdirFlag(false);
+                        }
+                        break;
+                    case MOVE :
+                        if(commander.getMoveFlag()){
+                            if(data["code"] === SUCCESS){
+
+                            }else{
+                                alert("파일을 이동하는데 실패했습니다");
+                            }
+                            component.hideProgress();
+                            commander.setMoveFlag(false);
+                        }
+                        break;
+                    case COPY :
+                        if(commander.getCopyFlag()){
+                            if(data["code"] === SUCCESS){
+
+                            }else{
+                                alert("복사에 실패했습니다");
+                            }
+                            component.hideProgress();
+                            commander.setCopyFlag(false);
+                        }
+                        break;
+                    case REMOVE :
+                        if(commander.getRemoveFlag()){
+                            if(data["code"] === SUCCESS){
+
+                            }else{
+                                alert("파일삭제에 실패했습니다");
+                            }
+                            component.hideProgress();
+                            commander.setRemoveFlag(false);
+                        }
+                        break;
+                    case RENAME :
+                        if(commander.getRenameFlag()){
+                            if(data["code"] === SUCCESS){
+
+                            }else{
+                                alert("이름 변경에 실패했습니다");
+                            }
+                            component.hideProgress();
+                            commander.setRenameFlag(false);
+                        }
+                        break;
+                }
+            }
 			/* ======= File Manager Event Handling ======== */
 
 				uploader.attachEvent("onAfterFileAdd", function(item, response){
 					// 파일 업로드 이벤트 : 업로드 하고자 하는 파일을 선택 하고 났을때 발생한다
 				});
 				/**
-				 * @command complete
+				 * @command complete1
 				 */
 				component.attachEvent("onAfterCreateFolder", function(id){
 				    // 폴더 생성이 되고 났을때 호출되는 이벤트를 핸들링한다
@@ -162,15 +250,34 @@
 					console.log("create folder path : ", mkDirPath);
 
 					// TODO 조금있다가 풀어준다
-//                    component.showProgress();
-
+                    component.showProgress();
+                    var packet = new Packet(device, { "type" : MK_DIR, "data" : mkDirPath });
 					component.getMenu().hide();
+					commander.setMkdirFlag(true);
 					// 메시지를 송신한다
+                    socket.emit(DATA, packet);
 					return false;
 				});
+                /**
+                 * @command MK_DIR data format
+                 *
+                 *  request format
+                    {
+                        "type"  :   "mkdir",
+                        "data"  :   "폴더를 생성할 경로가 적혀있다"
+                    }
+
+                    response format
+                    {
+                        "type" : "data",
+                        "data" : {
+                            "type" :
+                        }
+                    }
+                 * */
 
 				/**
-				 * @command complete
+				 * @command complete2
 				 */
 				component.attachEvent('onBeforeEditStop', function(id, state, view){
 					// 파일 또는 디렉토리의 이름이 변경을 완료 했을때 발생하는 이벤트
@@ -183,13 +290,23 @@
 					oldPath += state.old;
                     console.log("old Path : ", oldPath);
 					console.log("new Path : ", newPath);
-					// TODO 조금있다가 풀어줍니다
-//					component.showProgress();
 
-					// 메시지를 송신한다.
+					// TODO 조금있다가 풀어줍니다
+					component.showProgress();
+                    var packet = new Packet(device, {
+                            "type" : RENAME,
+                            "data" : {
+                                "originName"    :   oldPath,
+                                "newName"       :   newPath
+                            }
+                    });
+                    commander.setRenameFlag(true);
+                    // 메시지를 송신한다.
+                    socket.emit(DATA, packet);
 				});
+
 				/**
-				 * @command complete
+				 * @command complete3
 				 */
 				component.attachEvent("onBeforeMarkCopy", function(item_ids){
 					// context 메뉴에서 선택한 파일또는 디렉토리를 복사히기를 선택했을 때 발생하는 이벤트
@@ -206,9 +323,10 @@
                     console.log("src path : ", commander.getSourcePath());
                     console.log("file name list : ", commander.getFileNameList());
 
+
 				});
 				/**
-				 * @command complete
+				 * @command complete4
 				 */
             	component.attachEvent("onBeforeMarkCut", function(item_ids){
 					// 선택한 파일 또는 디렉토리의 context메뉴에서 잘라내기를 선택했을 때 발생하는 이벤트
@@ -225,10 +343,12 @@
                     console.log("src path : ", commander.getSourcePath());
                     console.log("file name list : ", commander.getFileNameList());
 
+
 				});
 
+
 				/**
-				 * @command complete
+				 * @command complete5
 				 */
             	component.attachEvent("onBeforePasteFile", function(item){
 					// 복사 또는 잘라내기를 통하여 붙여넣기를 했을 경우 발생하는 이벤트
@@ -258,29 +378,33 @@
 						    srcFiles.push(srcPath+fileName);
                             destFiles.push(destPath+fileName);
 						}
-
+                        var data = {
+						    "srcFiles"  : srcFiles,
+                            "destFiles" : destFiles
+                        };
+                        var packet = null;
 
 						// 복사를 했을 경우
                         if(!isCut && isCopy){
-							// $$("files").showProgress();
 							console.log("Copy Paste");
                             component.showProgress();
-
-//							socket.emit("request_copy_paste", reqData);
-							// socket.emit("request_cop")
-
+                            packet = new Packet(device, { "type" : COPY, "data" : data });
+                            commander.setCopyFlag(true);
+                            socket.emit(DATA, packet);
 						// 잘라내기를 했을경우
 						}else if(isCut && !isCopy){
 							component.showProgress();
 							console.log("Cut Paste");
-//							socket.emit("request_cut_paste", reqData);
+                            packet = new Packet(device, { "type" : MOVE, "data" : data });
+                            commander.setMoveFlag(true);
+                            socket.emit(DATA, packet);
 						}
 					}
 
 				});
 
 				/**
-				 * @command complete
+				 * @command complete6
 				 */
             	component.attachEvent("onBeforeDeleteFile", function(items){
 					// 파일 또는 디렉토리를 삭제했을 때 발생하는 이벤트
@@ -297,9 +421,11 @@
 						console.log("list : ", rmFileList);
                         component.showProgress();
                         // 파일 삭제 패킷 작성뒤 송신한다.
-						//	socket.emit("request_rm", {rmPaths : rmList});
-					}
+                        commander.setRemoveFlag(true);
+                        var packet = new Packet(device, { "type" : REMOVE, "data" : rmFileList });
+                        socket.emit(DATA, packet);
 
+					}
 					return false;
 				});
 

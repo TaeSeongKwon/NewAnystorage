@@ -122,6 +122,30 @@ ResponseData.prototype.__constructor = function(type, code, msg){
   this.statusText = msg;
 };
 
+// function Packet(){}
+// Packet.prototype._size;
+// Packet.prototype._buffer;
+// Packet.prototype.init = function(){
+//     this._buffer = null;
+// };
+// Packet.prototype.setSize = function(size){
+//     this._size = size;
+//     this._buffer = null;
+// };
+// Packet.prototype.concatBuffer = function(buff){
+//     if(this._buffer == null){
+//         this._buffer = new Buffer(buff);
+//     }else{
+//         buff = Buffer.from(buff);
+//         var totalLen = this._buffer.length + buff.length;
+//         this._buffer = Buffer.concat([this._buffer, buff], totalLen);
+//     }
+// };
+// Packet.prototype.getSize = function(){ return this._buffer.length; };
+// Packet.prototype.getTotalSize = function () { return this._size; };
+// Packet.prototype.getBuffer = function() { return this._buffer; };
+
+
 C_CONNECT = "connection";
 DATA = "data";
 REQUEST = "request";
@@ -214,6 +238,7 @@ function initClient(client){
 /******************** TCP Server Section *********************/
 LOGIN = "login";
 LOGOUT = "logout";
+CHUNK_SIZE = 1024;
 
 console.log("===== TCP Server Start =====");
 var myServer = net.createServer();      // 소켓서버 생성
@@ -221,25 +246,50 @@ myServer.listen(9900);        // PORT 9900으로 바인딩
 
 // 연결 요청 허용 메소드
 myServer.on("connection", function(socket){
-  console.log("Connect! Client(Android)");
+  console.log("=> Connect! Client(Android)");
+  socket.myBuffer = null;
+  socket.setKeepAlive(true);
+  socket.setTimeout(3600000*24);
 
   // 메시지 데이터 핸들링
   socket.on("data", function(recv_buf){
+     // console.log("recv data : ", recv_buf.toString());
 
-    // Parse JSON receive string from android
-    var data = JSON.parse(recv_buf.toString());
-    console.log("data : ", data);
-    // TYPE : LOGIN
-    if(data["type"] === LOGIN){
-      console.log("===> Recv : "+LOGIN);
-      tcpLogin(data, socket);   // Call android login
-    }else if(data["type"] === LOGOUT){
+      if(socket.myBuffer === null){
+            console.log("===> Buffer null");
+            socket.myBuffer = recv_buf;
+      }else{
+          console.log("===> chunk Data");
+          var totalLen = socket.myBuffer.length + recv_buf.length;
+          socket.myBuffer = Buffer.concat([socket.myBuffer, recv_buf], totalLen);
+      }
 
-    }else if(data["type"] === DATA){
-        console.log("===> Recv"+DATA, data["data"]);
-        var packet = data["data"];
-        sendData(packet, socket);
-    }
+      try{
+          console.log("====> recv data parse json start");
+          var data = JSON.parse(socket.myBuffer.toString());
+          console.log("====> recv data parse json edn");
+          socket.myBuffer = null;
+          if(data["type"] === LOGIN){
+              console.log("===> Recv : "+LOGIN);
+              tcpLogin(data, socket);   // Call android login
+          }else if(data["type"] === LOGOUT){
+
+          }else if(data["type"] === DATA){
+              console.log("===> Recv"+DATA, data["data"]);
+              var packet = data["data"];
+              sendData(packet, socket);
+          }
+      }catch(e){
+
+      }
+
+  });
+  socket.on("end", function(){
+      console.log("====> Recv End ");
+
+  });
+  socket.on("timeout", function(){
+      console.log("=====>TCP Cient Time Out");
   });
   socket.on("close", function(){
       console.log("TCP Socket Close");
@@ -254,16 +304,20 @@ myServer.on("connection", function(socket){
 function sendData(packet, socket){
     var key = socket.myUserKey;
     var member = null;
+    console.log("====> send data load...");
     if(userTable.has(key)){
+        console.log("====> send data ready...");
         member = userTable.get(key);
         var wSocket = member.getUser();
         if(wSocket){
+            console.log("====> send data transmit...",  packet);
             wSocket.emit(DATA, packet);
+            console.log("====> send data end...");
         }else{
-
+            console.log("===> send data transmot fail.... not found wSocket");
         }
     }else{
-
+        console.log("====> send data load fail.... not exist user Table value");
     }
 }
 // 로그인 함수 구현
