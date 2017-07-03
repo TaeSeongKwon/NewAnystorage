@@ -11,12 +11,18 @@ public class Resource {
     public final static int SUCCESS = 200;
     public final static int FAIL = 200;
 
+    public final static String RESPONSE = "response";
+
     public final static String REQUEST_LOGIN = "login";
     public final static String RESPONSE_LOGIN = "response:login";
 
     public final static String DATA = "data";
     public final static String TYPE_FILE_TREE = "file_tree";
 
-    public final static String TYPE_DATA_SIZE = "data_size";
+    public final static String TYPE_MK_DIR = "mkdir";
+    public final static String TYPE_RENAME = "rename";
+    public final static String TYPE_REMOVE = "rm";
+    public final static String TYPE_COPY = "cp";
+    public final static String TYPE_MOVE = "mv";
 
 }
