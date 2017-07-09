@@ -114,7 +114,7 @@ public class Communication extends Thread{
     public void removeObserver(MyObserver obj){
         observerList.remove(obj);
     }
-    private String receiveData(){
+    private byte[] receiveData(){
         byte[] buff, data;
         int len;
         try{
@@ -122,7 +122,8 @@ public class Communication extends Thread{
             len = in.read(buff);
             data = new byte[len];
             System.arraycopy(buff, 0, data, 0, len);
-            return new String(data, "UTF-8");
+            Log.e("Receive ", buff.toString());
+            return data;
         }catch(Exception e){
             Log.e("===> Receive Error ", e.toString());
             return null;
@@ -130,18 +131,31 @@ public class Communication extends Thread{
     }
     public void run(){
         String data;
+        byte[] buff = null;
         JSONObject obj;
         init();
 
         while(true){
             try {
-                data = this.receiveData();
+                if(buff == null){
+                    Log.e("Buffer is Null", " ");
+                    buff = this.receiveData();
+                }else{
+                    Log.e("Buffer append", " ");
+                    byte[] tmp = this.receiveData();
+                    byte[] copy = new byte[buff.length + tmp.length];
+                    System.arraycopy(buff,0,copy, 0,buff.length);
+                    System.arraycopy(tmp,0,copy,buff.length, tmp.length);
+                    buff = copy;
+                }
+                data = new String(buff, "UTF-8");
                 if (data != null) {
                     obj = new JSONObject(data);
                     Log.e("Receive Data ", obj.toString());
                     for (int idx = 0, len = observerList.size(); idx < len; idx++) {
                         observerList.get(idx).doRun(obj);
                     }
+                    buff = null;
                 }
             }catch(Exception e){
                 Log.e("===> Communication Error ", e.toString());

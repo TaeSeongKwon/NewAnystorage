@@ -5,7 +5,7 @@ package util.myapp.resource;
  */
 
 public class Resource {
-    public final static String IP = "192.168.0.44";
+    public final static String IP = "192.168.0.5";
     public final static int PORT = 9900;
     public final static int CHUNK_SIZE = 1024;
     public final static int SUCCESS = 200;
@@ -24,5 +24,9 @@ public class Resource {
     public final static String TYPE_REMOVE = "rm";
     public final static String TYPE_COPY = "cp";
     public final static String TYPE_MOVE = "mv";
-
+    public final static String TYPE_GET = "get";
+    public final static String TYPE_PUT = "put";
+    public final static String FILE_HEADER = "file_header";
+    public final static String CHUNK = "chunk";
+    public final static String FILE_TAIL = "file_tail";
 }

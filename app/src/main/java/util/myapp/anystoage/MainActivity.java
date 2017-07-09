@@ -81,6 +81,10 @@ public class MainActivity extends AppCompatActivity implements MyObserver{
             }else if(type.equals(Resource.TYPE_MOVE)){
                 JSONObject data = obj.getJSONObject("data");
                 move(data);
+            }else if(type.equals(Resource.TYPE_GET)){
+                String filePath = obj.getString("data");
+                this.getFile(filePath);
+            } else if (type.equals(Resource.TYPE_PUT)) {
             }
 
         }catch(Exception e){
@@ -114,6 +118,68 @@ public class MainActivity extends AppCompatActivity implements MyObserver{
         }
     }
 
+    private void getFile(String filePath){
+        try {
+            String abPath = Environment.getExternalStorageDirectory().getCanonicalPath();
+            filePath = abPath+filePath;
+            File file = new File(filePath);
+            JSONObject header = new JSONObject();
+            JSONObject body = new JSONObject();
+
+            header.put("type", Resource.DATA);
+            Log.e("====>> File exist", file.exists()+"");
+
+            if (file.exists()) {
+
+                long fileSize = file.length();
+                long totalChunk = fileSize / (long)Resource.CHUNK_SIZE;
+                if(fileSize % (long)Resource.CHUNK_SIZE != 0) totalChunk++;
+
+                body.put("type", Resource.FILE_HEADER);
+                body.put("totalChunk", totalChunk);
+
+                header.put("data", body);
+                Log.e("====>> FILE HEADER ", header.toString());
+                this.send(header.toString());
+
+                FileInputStream in = new FileInputStream(file);
+                byte[] tmp = new byte[Resource.CHUNK_SIZE];
+                byte[] chunk;
+                int len = -1, idx = 0;
+                while((len = in.read(tmp)) != -1){
+                    chunk = new byte[len];
+                    System.arraycopy(tmp, 0,chunk,0,len);
+                    header = new JSONObject();
+                    body = new JSONObject();
+                    JSONArray arr = new JSONArray(chunk);
+                    header.put("type", Resource.DATA);
+                    body.put("type", Resource.CHUNK);
+                    body.put("idx", idx);
+                    body.put("data", arr);
+
+                    header.put("data", body);
+                    Log.e("====>> FILE CHUNK ", header.toString());
+                    this.send(header.toString());
+                    idx++;
+                }
+
+                header = new JSONObject();
+                body = new JSONObject();
+
+                header.put("type", Resource.DATA);
+                body.put("type", Resource.FILE_TAIL);
+                header.put("data", body);
+                Log.e("====>> FILE TAIL ", header.toString());
+                this.send(header.toString());
+
+            } else {
+
+            }
+
+        }catch(Exception e){
+
+        }
+    }
     private void rm(String[] list){
         try {
             String[] removeList = new String[list.length];
@@ -223,6 +289,8 @@ public class MainActivity extends AppCompatActivity implements MyObserver{
                 int successCnt = 0;
 
                 for(int idx = 0; idx< srcPathList.length; idx++){
+                    Log.e("Copy src Path ", srcPathList[idx]);
+                    Log.e("Copy src Path ", destPathList[idx]);
                     srcFile = new File(srcPathList[idx]);
                     destFile = new File(destPathList[idx]);
                     long i = 1;
@@ -371,6 +439,15 @@ public class MainActivity extends AppCompatActivity implements MyObserver{
             Log.e("======> Get Path List Error ", e.toString());
             return null;
         }
+    }
+
+    private void send(String msg){
+        final String data = msg;
+        new Thread(){
+            public void run(){
+                comm.sendData(data);
+            }
+        }.start();
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
