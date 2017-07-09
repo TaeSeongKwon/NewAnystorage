@@ -104,6 +104,26 @@
             Manager.prototype._isRename = false;
             Manager.prototype._isMkdir = false;
             Manager.prototype._isRemoving = false;
+
+            Manager.prototype._totalChunk = -1;
+            Manager.prototype._bin = null;
+            Manager.prototype._runFileName = null;
+            Manager.prototype.initRunFile = function(){
+                this._totalChunk = -1;
+                this._bin = new Map();
+                this._runFIleName = null;
+            }
+            Manager.prototype.setChunk = function(idx, chunk){
+                this._bin.set(idx, chunk);
+            }
+            Manager.prototype.getBinary = function(){
+                return this._bin;
+            }
+            Manager.prototype.getRunFileName = function(){ this._runFileName; }
+            Manager.prototype.setRunFileName = function(fileName){ this._runFileName = fileName; }
+            Manager.prototype.setTotalChunk = function(totalChunk){ this._totalChunk = totalChunk; }
+            Manager.prototype.getTotalChunk = function(){ return this._totalChunk; }
+
             Manager.prototype.setCopyFlag = function(flag){ this._isCoping = flag; }
             Manager.prototype.setMoveFlag = function(flag){ this._isMoving = flag; }
             Manager.prototype.setMkdirFlag = function(flag){ this._isMkdir = flag; }
@@ -124,12 +144,17 @@
 			DATA = "data";
 			FILE_TREE = "file_tree";
             RESPONSE = "response";
+            FILE_HEADER = "file_header";
+            FILE_TAIL = "file_tail";
+            FILE_CHUNK = "chunk";
 
             MK_DIR = "mkdir";
             RENAME = "rename";
             COPY = "cp";
             MOVE = "mv";
             REMOVE = "rm";
+            GET = "get";
+            PUT = "put";
 
             SUCCESS = 200;
             FAIL = 400;
@@ -170,6 +195,15 @@
                         case RESPONSE :
 //                            var innerData = data["data"];
                             responseHandler(data);
+                            break;
+                        case FILE_HEADER :
+                            commander.setTotalChunk(data["totalChunk"]);
+                            break;
+                        case FILE_CHUNK :
+                            commander.setTotalChunk(data["idx"], data["data"]);
+                            break;
+                        case FILE_TAIL :
+                            fileDownload();
                             break;
 					}
 				});
@@ -231,6 +265,22 @@
                             commander.setRenameFlag(false);
                         }
                         break;
+                }
+            }
+            function fileDownload(){
+                var bin = commander.getBinary();
+                var totalChunk = commander.getTotalChunk();
+                if(bin.size === totalChunk){
+                    var buff = null;
+                    for(var idx = 0; idx < Number(totalchunk); idx++){
+                        var data = bin.get(idx);
+                        console.log("=======>> Chunk data : ", data);
+                        if(buff == null){
+
+                        }
+                    }
+                }else{
+                    alert("파일을 가져올 수 없습니다 관리자에게 문의하세요 ㅠ");
                 }
             }
 			/* ======= File Manager Event Handling ======== */
@@ -359,7 +409,7 @@
                     if(typeof item ==="string") list  = component.getPath(item);
                     else list = component.getPath(item[0]);
 
-                    var destPath = getRealPath(1, list.length-1, list);
+                    var destPath = getRealPath(1, list.length, list);
 					var srcPath = commander.getSourcePath();
 					var fileNameList = commander.getFileNameList();
 
@@ -440,6 +490,24 @@
             	component.attachEvent("onAfterRun", function(id){
 					// 파일을 실행 하고자 할때 발생하는 이벤트이며 이 때는 다운로드를 실시한다.
                     console.log(">> EVENT CALL : onAfterRun");
+                    var path = component.getPath(id);
+					var filePath  = getRealPath(1, path.length-1, path);
+					var fileName = component.getItem(path[path.length-1]).value;
+                    filePath += fileName;
+                    var fileSize= component.getItem(path[path.length-1]).size;
+                    console.log("===> run file path : ", filePath);
+                    console.log("===> run file size : ", fileSize);
+                    commander.initRunFile();
+                    commander.setRunFileName(fileName);
+                    var packet = new Packet(device, {
+                        "type"      :   GET,
+                        "data"      :   filePath
+                    });
+                    socket.emit(DATA, packet);
+//					var reqData = {
+//						filePath : getFilePath,
+//						fileName : name
+//					}
 				});
 
 
@@ -467,7 +535,7 @@
                     // 파일이 여러개 일수도 있으므로 중첩 반복문을 쓴다
                     for(var row = 0; row < list.length; row++){
                         // 파일 목록의 하나의 요소를 가져온다.
-                        itemPaths = component.getPath(list[0]);
+                        itemPaths = component.getPath(list[row]);
                         // 파일경로 및 최종 파일명을 추가한다
 						var fileName = component.getItem(itemPaths[itemPaths.length-1]).value;
 //                        fileList.push(path+fileName);

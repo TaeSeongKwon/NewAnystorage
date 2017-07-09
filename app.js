@@ -122,6 +122,8 @@ ResponseData.prototype.__constructor = function(type, code, msg){
   this.statusText = msg;
 };
 
+
+/***** Temp Data Structure *****/
 // function Packet(){}
 // Packet.prototype._size;
 // Packet.prototype._buffer;
@@ -275,7 +277,7 @@ myServer.on("connection", function(socket){
           }else if(data["type"] === LOGOUT){
 
           }else if(data["type"] === DATA){
-              console.log("===> Recv"+DATA, data["data"]);
+              console.log("===> Recv"+DATA, typeof data["data"]);
               var packet = data["data"];
               sendData(packet, socket);
           }
