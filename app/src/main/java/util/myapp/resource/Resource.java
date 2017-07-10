@@ -8,6 +8,7 @@ public class Resource {
     public final static String IP = "192.168.0.5";
     public final static int PORT = 9900;
     public final static int CHUNK_SIZE = 1024;
+    public final static int EXTEND_CHUNK = 1024 * 32;
     public final static int SUCCESS = 200;
     public final static int FAIL = 200;
 
@@ -29,4 +30,5 @@ public class Resource {
     public final static String FILE_HEADER = "file_header";
     public final static String CHUNK = "chunk";
     public final static String FILE_TAIL = "file_tail";
+    public final static String ACK = "ack";
 }
