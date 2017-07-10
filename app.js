@@ -312,8 +312,11 @@ function sendData(packet, socket){
         member = userTable.get(key);
         var wSocket = member.getUser();
         if(wSocket){
-            console.log("====> send data transmit...",  packet);
+            console.log("====> send data transmit...");
             wSocket.emit(DATA, packet);
+            var ack = { "type" : "ack", "data" : true};
+            var ackBuff = new Buffer(JSON.stringify(ack), "UTF-8");
+            socket.write(ackBuff);
             console.log("====> send data end...");
         }else{
             console.log("===> send data transmot fail.... not found wSocket");
