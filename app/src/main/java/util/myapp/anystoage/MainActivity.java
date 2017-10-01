@@ -11,6 +11,7 @@ import java.util.*;
 import org.json.*;
 import android.os.*;
 import util.myapp.comm.Communication;
+import util.myapp.comm.DTP;
 import util.myapp.myinterface.MyObserver;
 import util.myapp.resource.FileInfo;
 import util.myapp.resource.Resource;
@@ -21,7 +22,7 @@ public class MainActivity extends AppCompatActivity implements MyObserver{
     private FileInfo fileInfo = null;
     Communication comm = null;
     private boolean flag = true;
-    private boolean chunkM = false;
+
     @Override
     public void doRun(JSONObject obj) {
         if(fileInfo == null) fileInfo = new FileInfo();
@@ -84,10 +85,10 @@ public class MainActivity extends AppCompatActivity implements MyObserver{
                 move(data);
             }else if(type.equals(Resource.TYPE_GET)){
                 String filePath = obj.getString("data");
-                this.getFile(filePath);
+                String key = obj.getString("key");
+                this.getFile(filePath, key);
             } else if (type.equals(Resource.TYPE_PUT)) {
-            }else if(type.equals(Resource.ACK)){
-                this.chunkM = obj.getBoolean("data");
+                this.receiveFile(obj);
             }
 
         }catch(Exception e){
@@ -121,80 +122,27 @@ public class MainActivity extends AppCompatActivity implements MyObserver{
         }
     }
 
-    private void getFile(String filePath){
+    private void getFile(String filePath, String key){
         try {
             String abPath = Environment.getExternalStorageDirectory().getCanonicalPath();
             filePath = abPath+filePath;
-            final File file = new File(filePath);
-            JSONObject header = new JSONObject();
-            JSONObject body = new JSONObject();
+            DTP dtp = new DTP(filePath, key);
+            dtp.start();
+        }catch(Exception e){
 
-            header.put("type", Resource.DATA);
-            Log.e("====>> File exist", file.exists()+"");
+        }
+    }
+    private void receiveFile(JSONObject obj){
+        try {
+            String filePath = obj.getString("path");
+            String fileName = obj.getString("name");
+            String key = obj.getString("key");
+            Long size = obj.getLong("size");
+            String abPath = Environment.getExternalStorageDirectory().getCanonicalPath();
+            filePath = abPath + filePath + fileName;
 
-            if (file.exists()) {
-
-                long fileSize = file.length();
-                long totalChunk = fileSize / (long)Resource.EXTEND_CHUNK;
-                if(fileSize % (long)Resource.EXTEND_CHUNK != 0) totalChunk++;
-
-                body.put("type", Resource.FILE_HEADER);
-                body.put("totalChunk", totalChunk);
-
-                header.put("data", body);
-                Log.e("====>> FILE HEADER ", header.toString());
-                this.send(header.toString());
-                new Thread() {
-                    public void run() {
-                        try {
-                            FileInputStream in = new FileInputStream(file);
-                            byte[] tmp = new byte[Resource.EXTEND_CHUNK];
-                            byte[] chunk;
-                            int len = -1, idx = 0;
-                            Communication comm = Communication.getInstance();
-                            JSONObject header;
-                            JSONObject body;
-                            while ((len = in.read(tmp)) != -1)
-
-                            {
-                                chunk = new byte[len];
-                                System.arraycopy(tmp, 0, chunk, 0, len);
-                                header = new JSONObject();
-                                body = new JSONObject();
-                                JSONArray arr = new JSONArray(chunk);
-                                header.put("type", Resource.DATA);
-                                body.put("type", Resource.CHUNK);
-                                body.put("idx", idx);
-                                body.put("data", arr);
-
-                                header.put("data", body);
-                                Log.e("====>> FILE CHUNK ", header.toString());
-                                comm.sendData(header.toString());
-                                idx++;
-                                chunkM = false;
-                                while (!chunkM) {
-                                    Thread.sleep(10);
-                                }
-                            }
-
-                            header = new JSONObject();
-
-                            body = new JSONObject();
-
-                            header.put("type", Resource.DATA);
-                            body.put("type", Resource.FILE_TAIL);
-                            header.put("data", body);
-                            Log.e("====>> FILE TAIL ", header.toString());
-
-                            comm.sendData(header.toString());
-                        }catch(Exception e){}
-                    }
-                }.start();
-
-            } else {
-
-            }
-
+            DTP dtp = new DTP(filePath, key, size);
+            dtp.start();
         }catch(Exception e){
 
         }

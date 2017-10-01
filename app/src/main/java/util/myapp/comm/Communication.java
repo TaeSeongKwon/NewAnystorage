@@ -17,6 +17,8 @@ public class Communication extends Thread{
     private Socket socket;
     private InputStream in;
     private OutputStream out;
+    private BufferedOutputStream bOut;
+    private DataOutputStream dOut;
     private LinkedList<MyObserver> observerList;
     public boolean isStart = true;
     private static Communication ourInstance = null;
@@ -37,6 +39,9 @@ public class Communication extends Thread{
             socket = new Socket(Resource.IP, Resource.PORT);
             in = socket.getInputStream();
             out = socket.getOutputStream();
+            bOut = new BufferedOutputStream(out);
+            dOut = new DataOutputStream(bOut);
+
             isStart = false;
             socket.setSendBufferSize(1024*1024);
             socket.setTcpNoDelay(true);
@@ -47,26 +52,33 @@ public class Communication extends Thread{
 
     public void sendData(String msg){
         try{
+//          new Version
+            msg += "\n\r";
+            out.write(msg.getBytes("UTF-8"));
+//            dOut.write(msg.getBytes("UTF-8"));
+//          Current Version
+//            byte[] buff = msg.getBytes("UTF-8");
+//            byte[] tmp, chunk;
+//            int len = buff.length, cnt = 0;
+//            tmp = new byte[Resource.CHUNK_SIZE];
+//
+//            for(int idx = 0; idx<len; idx++){
+//                if(cnt == Resource.CHUNK_SIZE){
+//                    cnt = 0;
+//                    chunk = tmp;
+//                    out.write(chunk);
+//                }
+//                tmp[cnt++] = buff[idx];
+//
+//            }
+//            if(cnt != 0){
+//                chunk = new byte[cnt];
+//                System.arraycopy(tmp, 0,chunk,0,cnt);
+//                out.write(chunk);
+//            }
 
-            byte[] buff = msg.getBytes("UTF-8");
-            byte[] tmp, chunk;
-            int len = buff.length, cnt = 0;
-            tmp = new byte[Resource.CHUNK_SIZE];
 
-            for(int idx = 0; idx<len; idx++){
-                if(cnt == Resource.CHUNK_SIZE){
-                    cnt = 0;
-                    chunk = tmp;
-                    out.write(chunk);
-                }
-                tmp[cnt++] = buff[idx];
-
-            }
-            if(cnt != 0){
-                chunk = new byte[cnt];
-                System.arraycopy(tmp, 0,chunk,0,cnt);
-                out.write(chunk);
-            }
+            // Old Version
 //            JSONObject obj = new JSONObject();
 //            obj.put("type","dataSize");
 //            obj.put("size", len);
