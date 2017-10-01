@@ -33,8 +33,4 @@ public class Resource {
     public final static String TYPE_MOVE = "mv";
     public final static String TYPE_GET = "get";
     public final static String TYPE_PUT = "put";
-    public final static String FILE_HEADER = "file_header";
-    public final static String CHUNK = "chunk";
-    public final static String FILE_TAIL = "file_tail";
-    public final static String ACK = "ack";
 }
