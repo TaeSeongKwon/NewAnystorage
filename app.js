@@ -21,6 +21,7 @@ var device = require('./routes/device');
 /****************************/
 /****** User Add Moudule ******/
 var io = require("socket.io")();
+var io2 = require("socket.io")();
 var net = require("net");
 var session = require("express-session")({
     secret: "ansytorage_renewal",
@@ -241,6 +242,7 @@ function initClient(client){
 LOGIN = "login";
 LOGOUT = "logout";
 CHUNK_SIZE = 1024;
+TOKEN = "\n\r";
 
 console.log("===== TCP Server Start =====");
 var myServer = net.createServer();      // 소켓서버 생성
@@ -255,35 +257,63 @@ myServer.on("connection", function(socket){
 
   // 메시지 데이터 핸들링
   socket.on("data", function(recv_buf){
-     // console.log("recv data : ", recv_buf.toString());
+     console.log("recv data : ", recv_buf.toString());
 
       if(socket.myBuffer === null){
             console.log("===> Buffer null");
-            socket.myBuffer = recv_buf;
+          socket.myBuffer = recv_buf.toString();
+            // socket.myBuffer = recv_buf;
       }else{
           console.log("===> chunk Data");
-          var totalLen = socket.myBuffer.length + recv_buf.length;
-          socket.myBuffer = Buffer.concat([socket.myBuffer, recv_buf], totalLen);
+          socket.myBuffer += recv_buf.toString();
+          // var totalLen = socket.myBuffer.length + recv_buf.length;
+          // socket.myBuffer = Buffer.concat([socket.myBuffer, recv_buf], totalLen);
       }
 
-      try{
-          console.log("====> recv data parse json start");
-          var data = JSON.parse(socket.myBuffer.toString());
-          console.log("====> recv data parse json edn");
-          socket.myBuffer = null;
-          if(data["type"] === LOGIN){
-              console.log("===> Recv : "+LOGIN);
-              tcpLogin(data, socket);   // Call android login
-          }else if(data["type"] === LOGOUT){
-
-          }else if(data["type"] === DATA){
-              console.log("===> Recv"+DATA, typeof data["data"]);
-              var packet = data["data"];
-              sendData(packet, socket);
+      if(socket.myBuffer.indexOf(TOKEN) !== -1){
+          var tmp = socket.myBuffer.split(TOKEN);
+          socket.myBuffer = "";
+          for(var idx = 1; idx<tmp.length; idx++) {
+              socket.myBuffer += tmp[idx];
           }
-      }catch(e){
+          try{
+              console.log("====> recv data parse json start");
+              var data = JSON.parse(tmp[0]);
+              console.log("====> recv data parse json edn");
+              socket.myBuffer = null;
+              if(data["type"] === LOGIN){
+                  console.log("===> Recv : "+LOGIN);
+                  tcpLogin(data, socket);   // Call android login
+              }else if(data["type"] === LOGOUT){
 
+              }else if(data["type"] === DATA){
+                  console.log("===> Recv"+DATA, typeof data["data"]);
+                  var packet = data["data"];
+                  sendData(packet, socket);
+              }
+          }catch(e){
+
+          }
       }
+
+      // try{
+      //     console.log("====> recv data parse json start");
+      //     var data = JSON.parse(socket.myBuffer.toString());
+      //     console.log("====> recv data parse json edn");
+      //     socket.myBuffer = null;
+      //     if(data["type"] === LOGIN){
+      //         console.log("===> Recv : "+LOGIN);
+      //         tcpLogin(data, socket);   // Call android login
+      //     }else if(data["type"] === LOGOUT){
+      //
+      //     }else if(data["type"] === DATA){
+      //         console.log("===> Recv"+DATA, typeof data["data"]);
+      //         var packet = data["data"];
+      //         sendData(packet, socket);
+      //     }
+      // }catch(e){
+      //
+      // }
 
   });
   socket.on("end", function(){
@@ -478,6 +508,127 @@ function notifyOnlineDevices(email){
             wBrowser.emit("response", { type : TYPE_DEVICE_LIST, device : dataList });
 
         }
+    }
+}
+
+
+/* ==================== TEST SERVER ============================ */
+REQ_DTP = "request:new_dtp";
+RES_DTP = "response:new_dtp";
+BIN_DATA = "bin";
+
+SUCCESS = 200;
+function DTP(){
+    var wSocket = null;
+    var tcpSocket = null;
+    this.getWebSocket = function(){ return wSocket; };
+    this.getTCPSocket = function(){ return tcpSocket; };
+    this.setWebSocket = function(ws){ wSocket = ws; };
+    this.setTCPSocket = function(tcp){ tcpSocket = tcp; };
+}
+
+io2.listen(2010);
+io2.dtpSet = new Map();
+io2.on("connection", function(wClient){
+   console.log("============================== DTP CONNECT! =======================");
+   var size = 0;
+
+    wClient.on(REQ_DTP, function(data){
+       var roomKey = data["key"];
+       var element = new DTP();
+
+       wClient["myKey"] = roomKey;
+       element.setWebSocket(wClient);
+       io2.dtpSet.set(roomKey, element);
+
+       wClient.emit(RES_DTP, {"code" : SUCCESS } );
+    });
+
+    wClient.on(BIN_DATA, function(packet){
+        var element = io2.dtpSet.get(wClient["myKey"]);
+        size += packet.length;
+        console.log("RECV BINARY DATA : ", size+" Byte");
+        if(element !== null || element !== undefined) {
+            var tcp = element.getTCPSocket();
+            tcp.write(packet);
+            // ws.emit("bin", packet);
+        }
+    });
+
+    wClient.on("disconnect", function(){
+        console.log("DTP WEBSOCKET DISCONNECT : ", wClient["myKey"]);
+
+        if(wClient["myKey"] !== null || wClient["myKey"] !== undefined){
+            var element = io2.dtpSet.get(wClient["myKey"]);
+            element.setWebSocket(null);
+           closed(wClient);
+        }
+    });
+
+});
+
+var dtpServer = net.createServer();
+dtpServer.listen(2011);
+dtpServer.on("connection", function(client){
+    client.setNoDelay(false);
+    client.on("data", function(packet){
+
+        try {
+            var data = JSON.parse(packet.toString());
+            console.log("====>> RECV DTP JSON MSG : ", data);
+            if(data["type"] === REQ_DTP){
+                var roomKey = data["key"];
+                var element = io2.dtpSet.get(roomKey);
+
+                var resData = {};
+                resData["type"] = RES_DTP;
+                client["myKey"] = roomKey;
+
+                if(element !== null || element !== undefined) {
+                    element.setTCPSocket(client);
+                    resData["code"] = 200;
+                }else{
+                    resData["code"] = 400;
+                }
+                var buff = new Buffer(JSON.stringify(resData),"UTF-8");
+                client.write(buff);
+            }else{
+                var element = io2.dtpSet.get(client["myKey"]);
+                if(element !== null || element !== undefined) {
+                    var ws = element.getWebSocket();
+                    ws.emit("msg", data);
+                }
+            }
+        }catch(e){
+            console.log("RECV BINARY DATA : ", packet);
+            var element = io2.dtpSet.get(client["myKey"]);
+            if(element !== null || element !== undefined) {
+                var ws = element.getWebSocket();
+                ws.emit("bin", packet);
+            }
+        }
+    });
+
+    client.on("end", function(){
+        console.log("====>> DTP TCP DISCONNECT : ", client["myKey"]);
+        if(client["myKey"] !== null || client["myKey"] !== undefined){
+            var element = io2.dtpSet.get(client["myKey"]);
+            element.setTCPSocket(null);
+            closed(client);
+        }
+    });
+});
+function closed(client){
+    var element = io2.dtpSet.get(client["myKey"]);
+    if(element !== null || element !== undefined) {
+        var ws = element.getWebSocket();
+        var tcp = element.getTCPSocket();
+
+        if ((ws === null || ws === undefined) &&
+            (tcp === null || tcp === undefined)) {
+            io2.dtpSet.delete(client.myKey);
+        }
+        client["myKey"] = null;
     }
 }
 module.exports = app;

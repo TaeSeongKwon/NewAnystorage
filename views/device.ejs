@@ -50,350 +50,455 @@
 			</div>
 		</section>
 		<script type="text/javascript">
+            (function() {
+                // Defined Communication PACKET Data Structure
+                function Packet(device, data) {
+                    this.device = device;
+                    this.data = data;
+                }
 
-            // Defined Communication PACKET Data Structure
-            function Packet(device, data){
-                this.device = device;
-                this.data = data;
-            }
-            Packet.prototype.data = null;
-            Packet.prototype.device = null;
+                Packet.prototype.data = null;
+                Packet.prototype.device = null;
 
-            // Defined FileManager Data Structuire
-            function Manager(){}
-            Manager.prototype.fileTree = null;
-            Manager.prototype.setCopyNCut = function(copy, cut){
-                this._isCopy = copy;
-                this._isCut = cut;
-			}
-			Manager.prototype.isCopy = function(){ return this._isCopy; }
-			Manager.prototype.isCut = function(){ return this._isCut; }
+                // Defined FileManager Data Structuire
+                function Manager() {
+                }
+
+                Manager.prototype.fileTree = null;
+                Manager.prototype.setCopyNCut = function (copy, cut) {
+                    this._isCopy = copy;
+                    this._isCut = cut;
+                }
+                Manager.prototype.isCopy = function () {
+                    return this._isCopy;
+                }
+                Manager.prototype.isCut = function () {
+                    return this._isCut;
+                }
 //			Manager.prototype.setFilePathList = function(list){
 //			    this._filePathList = list;
 //			}
 //            Manager.prototype.getFilePathList = function(){
 //                return this._filePathList;
 //            }
-            Manager.prototype.setFileNameList = function(list){
-				this._fileNameList = list;
-			}
-			Manager.prototype.getFileNameList = function(){
-                return this._fileNameList;
-			}
-            Manager.prototype.setDestPath = function(path){
-                this._destPath = path;
-            }
-            Manager.prototype.getDestPath = function(){
-                return this._destPath;
-            }
-			Manager.prototype.setSourcePath = function(path){
-			    this._srcPath = path;
-			}
-            Manager.prototype.getSourcePath = function(){
-				return this._srcPath;
-            }
+                Manager.prototype.setFileNameList = function (list) {
+                    this._fileNameList = list;
+                }
+                Manager.prototype.getFileNameList = function () {
+                    return this._fileNameList;
+                }
+                Manager.prototype.setDestPath = function (path) {
+                    this._destPath = path;
+                }
+                Manager.prototype.getDestPath = function () {
+                    return this._destPath;
+                }
+                Manager.prototype.setSourcePath = function (path) {
+                    this._srcPath = path;
+                }
+                Manager.prototype.getSourcePath = function () {
+                    return this._srcPath;
+                }
 //            Manager.prototype._filePathList = null;
-            Manager.prototype._isCopy = false;
-            Manager.prototype._isCut = false;
-            Manager.prototype._fileNameList = null;
-			Manager.prototype._srcPath = null;
-			Manager.prototype._destPath = null;
+                Manager.prototype._isCopy = false;
+                Manager.prototype._isCut = false;
+                Manager.prototype._fileNameList = null;
+                Manager.prototype._srcPath = null;
+                Manager.prototype._destPath = null;
 
-			Manager.prototype._isCoping = false;
-            Manager.prototype._isMoving = false;
-            Manager.prototype._isRename = false;
-            Manager.prototype._isMkdir = false;
-            Manager.prototype._isRemoving = false;
+                Manager.prototype._isCoping = false;
+                Manager.prototype._isMoving = false;
+                Manager.prototype._isRename = false;
+                Manager.prototype._isMkdir = false;
+                Manager.prototype._isRemoving = false;
 
-            Manager.prototype._totalChunk = -1;
-            Manager.prototype._bin = null;
-            Manager.prototype._runFileName = null;
-            Manager.prototype.initRunFile = function(){
-                this._totalChunk = -1;
-                this._bin = new Map();
-                this._runFIleName = null;
-            }
-            Manager.prototype.setChunk = function(idx, chunk){
-                this._bin.set(idx, chunk);
-            }
-            Manager.prototype.getBinary = function(){
-                return this._bin;
-            }
-            Manager.prototype.getRunFileName = function(){ return this._runFileName; }
-            Manager.prototype.setRunFileName = function(fileName){ this._runFileName = fileName; }
-            Manager.prototype.setTotalChunk = function(totalChunk){ this._totalChunk = totalChunk; }
-            Manager.prototype.getTotalChunk = function(){ return this._totalChunk; }
-
-            Manager.prototype.setCopyFlag = function(flag){ this._isCoping = flag; }
-            Manager.prototype.setMoveFlag = function(flag){ this._isMoving = flag; }
-            Manager.prototype.setMkdirFlag = function(flag){ this._isMkdir = flag; }
-            Manager.prototype.setRenameFlag = function(flag){ this._isRename = flag; }
-            Manager.prototype.setRemoveFlag = function(flag){ this._isRemoving = flag; }
-
-            Manager.prototype.getCopyFlag = function(){ return this._isCoping; }
-            Manager.prototype.getMoveFlag = function(){ return this._isMoving; }
-            Manager.prototype.getMkdirFlag = function(){ return this._isMkdir; }
-            Manager.prototype.getRenameFlag = function(){ return this._isRename; }
-            Manager.prototype.getRemoveFlag = function(){ return this._isRemoving; }
-
-			/* ============ User Define Data ============== */
-            var mem_id = "<%=userInfo.mem_id%>";
-            var device = "<%=device_model%>";
-
-			CONNECT = "connect";
-			DATA = "data";
-			FILE_TREE = "file_tree";
-            RESPONSE = "response";
-            FILE_HEADER = "file_header";
-            FILE_TAIL = "file_tail";
-            FILE_CHUNK = "chunk";
-
-            MK_DIR = "mkdir";
-            RENAME = "rename";
-            COPY = "cp";
-            MOVE = "mv";
-            REMOVE = "rm";
-            GET = "get";
-            PUT = "put";
-
-            SUCCESS = 200;
-            FAIL = 400;
-            var component = webix.ui({
-                container:"manager",
-                view:"filemanager",
-                id:"files"
-            });
-
-            var uploader = component.getUploader();
-            var commander = new Manager();
-            var socket = io.connect({timeout : (1000*60*30)});
+                Manager.prototype._uploadPath = null;
+                Manager.prototype._uploadFile = null;
 
 
-			// $("body").faLoading('fa-refresh');
+                Manager.prototype._totalFileSize = -1;
+                Manager.prototype._bin = null;
+                Manager.prototype._binIdx = 0;
+                Manager.prototype._runFileName = null;
+
+                Manager.prototype.getUploadPath = function () {
+                    return this._uploadPath;
+                }
+                Manager.prototype.getUploadFile = function () {
+                    return this._uploadFile;
+                }
+                Manager.prototype.setUploadPath = function (uploadPath) {
+                    this._uploadPath = uploadPath;
+                }
+                Manager.prototype.setUploadFile = function (uploadFile) {
+                    this._uploadFile = uploadFile;
+                }
+
+                Manager.prototype.initRunFile = function () {
+                    this._totalFileSize = -1;
+                    this._bin = null;
+                    this._binIdx = 0;
+                    this._runFileName = null;
+                }
+
+                Manager.prototype.getBinary = function () {
+                    return this._bin;
+                }
+                Manager.prototype.getRunFileName = function () {
+                    return this._runFileName;
+                }
+                Manager.prototype.setRunFileName = function (fileName) {
+                    this._runFileName = fileName;
+                }
+                Manager.prototype.setTotalFileSize = function (fileSize) {
+                    this._totalFileSize = fileSize;
+                    this._bin = new Uint8Array(fileSize);
+                }
+                Manager.prototype.setCurrBinIdx = function (idx) {
+                    this._binIdx = idx;
+                }
+                Manager.prototype.getCurrBinIdx = function () {
+                    return this._binIdx;
+                }
+                Manager.prototype.getTotalFileSize = function () {
+                    return this._totalFileSize;
+                }
+
+                Manager.prototype.setCopyFlag = function (flag) {
+                    this._isCoping = flag;
+                }
+                Manager.prototype.setMoveFlag = function (flag) {
+                    this._isMoving = flag;
+                }
+                Manager.prototype.setMkdirFlag = function (flag) {
+                    this._isMkdir = flag;
+                }
+                Manager.prototype.setRenameFlag = function (flag) {
+                    this._isRename = flag;
+                }
+                Manager.prototype.setRemoveFlag = function (flag) {
+                    this._isRemoving = flag;
+                }
+
+                Manager.prototype.getCopyFlag = function () {
+                    return this._isCoping;
+                }
+                Manager.prototype.getMoveFlag = function () {
+                    return this._isMoving;
+                }
+                Manager.prototype.getMkdirFlag = function () {
+                    return this._isMkdir;
+                }
+                Manager.prototype.getRenameFlag = function () {
+                    return this._isRename;
+                }
+                Manager.prototype.getRemoveFlag = function () {
+                    return this._isRemoving;
+                }
+
+                /* ============ User Define Data ============== */
+                var mem_id = "<%= userInfo.mem_id %>";
+                var device = "<%= device_model %>";
+                var host = "<%= server_addr %>";
+
+                var DEFAULT = 1024;
+                var CHUNK = DEFAULT * 64;
+
+                var PORT = 2010;
+
+                var CONNECT = "connect";
+                var DATA = "data";
+                var FILE_TREE = "file_tree";
+                var RESPONSE = "response";
+
+                var MK_DIR = "mkdir";
+                var RENAME = "rename";
+                var COPY = "cp";
+                var MOVE = "mv";
+                var REMOVE = "rm";
+                var GET = "get";
+                var PUT = "put";
+
+                var SUCCESS = 200;
+                var FAIL = 400;
+
+                var REQ_DTP = "request:new_dtp";
+                var RES_DTP = "response:new_dtp";
+                var RDY_RECV = "ready:file_recv";
+
+                var component = webix.ui({
+                    container: "manager",
+                    view: "filemanager",
+                    id: "files"
+                });
+
+                var uploader = component.getUploader();
+                var commander = new Manager();
+                var socket = io.connect({timeout: (1000 * 60 * 30)});
+
+
+                // $("body").faLoading('fa-refresh');
 
 //            webix.ready(function(){
 
 //            });
 
 
-			// Connect to Server
+                // Connect to Server
 
 
-            /* ======= Communication Event Handling ===== */
-				socket.on(CONNECT, function(){
-					var packet = new Packet(device, { "type" : FILE_TREE });
-					socket.emit(DATA, packet);
-				});
+                /* ======= Communication Event Handling ===== */
+                socket.on(CONNECT, function () {
+                    var packet = new Packet(device, {"type": FILE_TREE});
+                    socket.emit(DATA, packet);
+                });
 
-				socket.on(DATA, function(data){
-				    console.log("===> Recv("+DATA+") : ", data);
-					switch(data["type"]){
-						case FILE_TREE :
-						    var tree = data["data"];
+                socket.on(DATA, function (data) {
+                    console.log("===> Recv(" + DATA + ") : ", data);
+                    switch (data["type"]) {
+                        case FILE_TREE :
+                            var tree = data["data"];
                             component.parse(tree);
-							break;
+                            break;
                         case RESPONSE :
 //                            var innerData = data["data"];
                             responseHandler(data);
                             break;
-                        case FILE_HEADER :
-                            commander.setTotalChunk(data["totalChunk"]);
-                            break;
-                        case FILE_CHUNK :
-                            commander.setChunk(data["idx"], data["data"]);
-                            break;
-                        case FILE_TAIL :
-                            fileDownload();
-                            break;
-					}
-				});
-            /* ======= End Communication Event Handling ======= */
-            function responseHandler(data){
-                switch(data["to"]){
-                    case MK_DIR :
-                        if(commander.getMkdirFlag()){
-                            if(data["code"] === SUCCESS){
-
-                            }else{
-                                alert("폴더를 생성하는데 실패했습니다");
-                            }
-                            component.hideProgress();
-                            commander.setMkdirFlag(false);
-                        }
-                        break;
-                    case MOVE :
-                        if(commander.getMoveFlag()){
-                            if(data["code"] === SUCCESS){
-
-                            }else{
-                                alert("파일을 이동하는데 실패했습니다");
-                            }
-                            component.hideProgress();
-                            commander.setMoveFlag(false);
-                        }
-                        break;
-                    case COPY :
-                        if(commander.getCopyFlag()){
-                            if(data["code"] === SUCCESS){
-
-                            }else{
-                                alert("복사에 실패했습니다");
-                            }
-                            component.hideProgress();
-                            commander.setCopyFlag(false);
-                        }
-                        break;
-                    case REMOVE :
-                        if(commander.getRemoveFlag()){
-                            if(data["code"] === SUCCESS){
-
-                            }else{
-                                alert("파일삭제에 실패했습니다");
-                            }
-                            component.hideProgress();
-                            commander.setRemoveFlag(false);
-                        }
-                        break;
-                    case RENAME :
-                        if(commander.getRenameFlag()){
-                            if(data["code"] === SUCCESS){
-
-                            }else{
-                                alert("이름 변경에 실패했습니다");
-                            }
-                            component.hideProgress();
-                            commander.setRenameFlag(false);
-                        }
-                        break;
-                }
-            }
-            function fileDownload(){
-                var bin = commander.getBinary();
-                var totalChunk = commander.getTotalChunk();
-                if(bin.size === totalChunk){
-                    var arr = null;
-                    var chunkSize = bin.get(0).length;
-                    var fileSize = (chunkSize * (totalChunk -1)) + bin.get(totalChunk-1).length;
-                    var fileBuffer = new Uint8Array(fileSize);
-                    var bufIdx = 0;
-                    for(var idx = 0; idx < Number(totalChunk); idx++){
-                        var data = bin.get(idx);
-                        console.log("=======>> Chunk data :   ", data);
-                        for(var j = 0; j<data.length; j++){
-                            fileBuffer[bufIdx++] = data[j];
-                        }
                     }
+                });
+                /* ======= End Communication Event Handling ======= */
+                function responseHandler(data) {
+                    switch (data["to"]) {
+                        case MK_DIR :
+                            if (commander.getMkdirFlag()) {
+                                if (data["code"] === SUCCESS) {
+
+                                } else {
+                                    alert("폴더를 생성하는데 실패했습니다");
+                                }
+                                component.hideProgress();
+                                commander.setMkdirFlag(false);
+                            }
+                            break;
+                        case MOVE :
+                            if (commander.getMoveFlag()) {
+                                if (data["code"] === SUCCESS) {
+
+                                } else {
+                                    alert("파일을 이동하는데 실패했습니다");
+                                }
+                                component.hideProgress();
+                                commander.setMoveFlag(false);
+                            }
+                            break;
+                        case COPY :
+                            if (commander.getCopyFlag()) {
+                                if (data["code"] === SUCCESS) {
+
+                                } else {
+                                    alert("복사에 실패했습니다");
+                                }
+                                component.hideProgress();
+                                commander.setCopyFlag(false);
+                            }
+                            break;
+                        case REMOVE :
+                            if (commander.getRemoveFlag()) {
+                                if (data["code"] === SUCCESS) {
+
+                                } else {
+                                    alert("파일삭제에 실패했습니다");
+                                }
+                                component.hideProgress();
+                                commander.setRemoveFlag(false);
+                            }
+                            break;
+                        case RENAME :
+                            if (commander.getRenameFlag()) {
+                                if (data["code"] === SUCCESS) {
+
+                                } else {
+                                    alert("이름 변경에 실패했습니다");
+                                }
+                                component.hideProgress();
+                                commander.setRenameFlag(false);
+                            }
+                            break;
+                    }
+                }
+
+                function fileDownload() {
+                    var bin = commander.getBinary();
+                    var fileName = commander.getRunFileName();
                     var a = document.createElement("a");
-				    document.body.appendChild(a);
-				    a.style = "display: none";
-                    var blob = new Blob([fileBuffer], {type : "octet/stream"});
+                    document.body.appendChild(a);
+                    a.style = "display: none";
+                    var blob = new Blob([bin], {type: "octet/stream"});
                     var url = window.URL.createObjectURL(blob);
                     a.href = url;
-                    a.download = commander.getRunFileName();
+                    a.download = fileName;
                     a.click();
                     window.URL.revokeObjectURL(url);
-
-                }else{
-                    alert("파일을 가져올 수 없습니다 관리자에게 문의하세요 ㅠ");
                 }
-            }
-			/* ======= File Manager Event Handling ======== */
 
-				uploader.attachEvent("onAfterFileAdd", function(item, response){
-					// 파일 업로드 이벤트 : 업로드 하고자 하는 파일을 선택 하고 났을때 발생한다
-				});
-				/**
-				 * @command complete1
-				 */
-				component.attachEvent("onAfterCreateFolder", function(id){
-				    // 폴더 생성이 되고 났을때 호출되는 이벤트를 핸들링한다
-					console.log(">> EVENT CALL : onAfterCreateFolder");
+                /* ======= File Manager Event Handling ======== */
+
+                uploader.attachEvent("onAfterFileAdd", function (item, response) {
+                    // 파일 업로드 이벤트 : 업로드 하고자 하는 파일을 선택 하고 났을때 발생한다
+                    var path = component.getPath(item["id"]);
+                    var filePath = getRealPath(1, path.length - 1, path);
+                    var roomKey = mem_id + "_" + device + "_" + new Date().getTime();
+
+                    commander.setUploadFile(item["file"]);
+                    commander.setUploadPath(filePath);
+
+                    console.log("FILE PATH : ", filePath);
+                    console.log("item : ", item);
+                    var data = {
+                        "type": PUT,
+                        "name": item["name"],
+                        "path": filePath,
+                        "size": item["size"],
+                        "key": roomKey
+                    };
+                    var packet = new Packet(device, data);
+                    var dtpSocket = io.connect(host + ":" + PORT);
+                    dtpSocket.on(CONNECT, function () {
+                        console.log("==================== UPLOAD DTP CONNECT ! =======================");
+                        dtpSocket.emit(REQ_DTP, {"key": roomKey});
+
+                        dtpSocket.on(RES_DTP, function (data) {
+                            console.log(RES_DTP, data);
+                            if (data["code"] === SUCCESS) {
+                                socket.emit(DATA, packet);
+                            }
+                        });
+
+                        dtpSocket.on("msg", function (packet) {
+                            console.log("msg", packet);
+                            if (packet["type"] === RDY_RECV) {
+                                uploadFile(dtpSocket);
+                            }
+                        });
+
+                        dtpSocket.on("disconnect", function () {
+                            console.log("====>> DTP DISCONNECT");
+                        });
+                    });
+
+
+                });
+                function uploadFile(dtpSocket) {
+                    var file = commander.getUploadFile();
+                    var fileReader = new FileReader();
+                    fileReader.onload = function (e) {
+                        var buff = e.target.result;
+                        console.log("LOAD FILE BIN : ", buff);
+                        var bin = new Int8Array(buff);
+                        var idx = 0;
+                        for (var start = idx; start < bin.length; start += CHUNK) {
+                            var end = (start + CHUNK > bin.length) ? bin.length : (start + CHUNK);
+                            var chunk = buff.slice(start, start + CHUNK);
+                            dtpSocket.emit("bin", chunk);
+                            console.log("==>> BINARAY TRANSFER ( " + start + " ~ " + end + " ) : ", chunk);
+                        }
+                        dtpSocket.close();
+                    }
+                    fileReader.readAsArrayBuffer(file);
+                }
+
+                /**
+                 * @command complete1
+                 */
+                component.attachEvent("onAfterCreateFolder", function (id) {
+                    // 폴더 생성이 되고 났을때 호출되는 이벤트를 핸들링한다
+                    console.log(">> EVENT CALL : onAfterCreateFolder");
                     var path = component.getPath(id);
-					var mkDirPath = getRealPath(1, path.length, path);
+                    var mkDirPath = getRealPath(1, path.length, path);
 
-					console.log("create folder path : ", mkDirPath);
+                    console.log("create folder path : ", mkDirPath);
 
-					// TODO 조금있다가 풀어준다
+                    // TODO 조금있다가 풀어준다
                     component.showProgress();
-                    var packet = new Packet(device, { "type" : MK_DIR, "data" : mkDirPath });
-					component.getMenu().hide();
-					commander.setMkdirFlag(true);
-					// 메시지를 송신한다
+                    var packet = new Packet(device, {"type": MK_DIR, "data": mkDirPath});
+                    component.getMenu().hide();
+                    commander.setMkdirFlag(true);
+                    // 메시지를 송신한다
                     socket.emit(DATA, packet);
-					return false;
-				});
+                    return false;
+                });
                 /**
                  * @command MK_DIR data format
                  *
                  *  request format
-                    {
-                        "type"  :   "mkdir",
-                        "data"  :   "폴더를 생성할 경로가 적혀있다"
-                    }
+                 {
+                     "type"  :   "mkdir",
+                     "data"  :   "폴더를 생성할 경로가 적혀있다"
+                 }
 
-                    response format
-                    {
-                        "type" : "data",
-                        "data" : {
-                            "type" :
-                        }
-                    }
+                 response format
+                 {
+                     "type" : "data",
+                     "data" : {
+                         "type" :
+                     }
+                 }
                  * */
 
-				/**
-				 * @command complete2
-				 */
-				component.attachEvent('onBeforeEditStop', function(id, state, view){
-					// 파일 또는 디렉토리의 이름이 변경을 완료 했을때 발생하는 이벤트
+                /**
+                 * @command complete2
+                 */
+                component.attachEvent('onBeforeEditStop', function (id, state, view) {
+                    // 파일 또는 디렉토리의 이름이 변경을 완료 했을때 발생하는 이벤트
                     console.log(">> EVENT CALL : onBeforeEditStop");
                     var path = component.getPath(id);
-                    var newPath = getRealPath(1, path.length-1, path);
-					var oldPath = getRealPath(1, path.length-1, path);
+                    var newPath = getRealPath(1, path.length - 1, path);
+                    var oldPath = getRealPath(1, path.length - 1, path);
 
-					newPath += state.value;
-					oldPath += state.old;
+                    newPath += state.value;
+                    oldPath += state.old;
                     console.log("old Path : ", oldPath);
-					console.log("new Path : ", newPath);
+                    console.log("new Path : ", newPath);
 
-					// TODO 조금있다가 풀어줍니다
-					component.showProgress();
+                    // TODO 조금있다가 풀어줍니다
+                    component.showProgress();
                     var packet = new Packet(device, {
-                            "type" : RENAME,
-                            "data" : {
-                                "originName"    :   oldPath,
-                                "newName"       :   newPath
-                            }
+                        "type": RENAME,
+                        "data": {
+                            "originName": oldPath,
+                            "newName": newPath
+                        }
                     });
                     commander.setRenameFlag(true);
                     // 메시지를 송신한다.
                     socket.emit(DATA, packet);
-				});
+                });
 
-				/**
-				 * @command complete3
-				 */
-				component.attachEvent("onBeforeMarkCopy", function(item_ids){
-					// context 메뉴에서 선택한 파일또는 디렉토리를 복사히기를 선택했을 때 발생하는 이벤트
+                /**
+                 * @command complete3
+                 */
+                component.attachEvent("onBeforeMarkCopy", function (item_ids) {
+                    // context 메뉴에서 선택한 파일또는 디렉토리를 복사히기를 선택했을 때 발생하는 이벤트
                     console.log(">> EVENT CALL : onBeforeMarkCopy");
                     var obj = getFilePathList(item_ids);
 
                     commander.setCopyNCut(true, false);
 //					commander.setFilePathList(obj["fileList"]);
-					commander.setFileNameList(obj["fileNameList"]);
-					commander.setSourcePath(obj["srcFilePath"]);
+                    commander.setFileNameList(obj["fileNameList"]);
+                    commander.setSourcePath(obj["srcFilePath"]);
 
-					console.log("isCopy : ", commander.isCopy());
+                    console.log("isCopy : ", commander.isCopy());
                     console.log("isCut : ", commander.isCut());
                     console.log("src path : ", commander.getSourcePath());
                     console.log("file name list : ", commander.getFileNameList());
 
 
-				});
-				/**
-				 * @command complete4
-				 */
-            	component.attachEvent("onBeforeMarkCut", function(item_ids){
-					// 선택한 파일 또는 디렉토리의 context메뉴에서 잘라내기를 선택했을 때 발생하는 이벤트
+                });
+                /**
+                 * @command complete4
+                 */
+                component.attachEvent("onBeforeMarkCut", function (item_ids) {
+                    // 선택한 파일 또는 디렉토리의 context메뉴에서 잘라내기를 선택했을 때 발생하는 이벤트
                     console.log(">> EVENT CALL : onBeforeMarkCut");
                     var obj = getFilePathList(item_ids);
 
@@ -408,667 +513,198 @@
                     console.log("file name list : ", commander.getFileNameList());
 
 
-				});
+                });
 
 
-				/**
-				 * @command complete5
-				 */
-            	component.attachEvent("onBeforePasteFile", function(item){
-					// 복사 또는 잘라내기를 통하여 붙여넣기를 했을 경우 발생하는 이벤트
+                /**
+                 * @command complete5
+                 */
+                component.attachEvent("onBeforePasteFile", function (item) {
+                    // 복사 또는 잘라내기를 통하여 붙여넣기를 했을 경우 발생하는 이벤트
                     console.log(">> EVENT CALL : onBeforePasteFile");
 
                     var list = null;
 
-                    if(typeof item ==="string") list  = component.getPath(item);
+                    if (typeof item === "string") list = component.getPath(item);
                     else list = component.getPath(item[0]);
 
                     var destPath = getRealPath(1, list.length, list);
-					var srcPath = commander.getSourcePath();
-					var fileNameList = commander.getFileNameList();
+                    var srcPath = commander.getSourcePath();
+                    var fileNameList = commander.getFileNameList();
 
-					console.log("src path : ", srcPath);
+                    console.log("src path : ", srcPath);
                     console.log("dest path : ", destPath);
 
-					if(srcPath === destPath){
+                    if (srcPath === destPath) {
                         alert("같은 곳에는 붙여 넣을 수 없습니다!");
-					}else{
-					    var srcFiles = [];
-						var destFiles = [];
-						var isCopy = commander.isCopy();
-						var isCut = commander.isCut();
-						for(var idx = 0; idx<fileNameList.length; idx++){
-						    var fileName = fileNameList[idx];
-						    srcFiles.push(srcPath+fileName);
-                            destFiles.push(destPath+fileName);
-						}
+                    } else {
+                        var srcFiles = [];
+                        var destFiles = [];
+                        var isCopy = commander.isCopy();
+                        var isCut = commander.isCut();
+                        for (var idx = 0; idx < fileNameList.length; idx++) {
+                            var fileName = fileNameList[idx];
+                            srcFiles.push(srcPath + fileName);
+                            destFiles.push(destPath + fileName);
+                        }
                         var data = {
-						    "srcFiles"  : srcFiles,
-                            "destFiles" : destFiles
+                            "srcFiles": srcFiles,
+                            "destFiles": destFiles
                         };
                         var packet = null;
 
-						// 복사를 했을 경우
-                        if(!isCut && isCopy){
-							console.log("Copy Paste");
+                        // 복사를 했을 경우
+                        if (!isCut && isCopy) {
+                            console.log("Copy Paste");
                             component.showProgress();
-                            packet = new Packet(device, { "type" : COPY, "data" : data });
+                            packet = new Packet(device, {"type": COPY, "data": data});
                             commander.setCopyFlag(true);
                             socket.emit(DATA, packet);
-						// 잘라내기를 했을경우
-						}else if(isCut && !isCopy){
-							component.showProgress();
-							console.log("Cut Paste");
-                            packet = new Packet(device, { "type" : MOVE, "data" : data });
+                            // 잘라내기를 했을경우
+                        } else if (isCut && !isCopy) {
+                            component.showProgress();
+                            console.log("Cut Paste");
+                            packet = new Packet(device, {"type": MOVE, "data": data});
                             commander.setMoveFlag(true);
                             socket.emit(DATA, packet);
-						}
-					}
+                        }
+                    }
 
-				});
+                });
 
-				/**
-				 * @command complete6
-				 */
-            	component.attachEvent("onBeforeDeleteFile", function(items){
-					// 파일 또는 디렉토리를 삭제했을 때 발생하는 이벤트
+                /**
+                 * @command complete6
+                 */
+                component.attachEvent("onBeforeDeleteFile", function (items) {
+                    // 파일 또는 디렉토리를 삭제했을 때 발생하는 이벤트
                     console.log(">> EVENT CALL : onFolderSelect");
                     var obj = getFilePathList(items);
                     var path = obj["srcFilePath"];
                     var fileNames = obj["fileNameList"];
                     var rmFileList = [];
-                    for(var idx = 0; idx< fileNames.length; idx++){
-                        rmFileList.push(path+fileNames[idx]);
-					}
-					component.getMenu().hide();
-					if(confirm(rmFileList.length+"개 파일을 정말 삭제하시겠습니까?")){
-						console.log("list : ", rmFileList);
+                    for (var idx = 0; idx < fileNames.length; idx++) {
+                        rmFileList.push(path + fileNames[idx]);
+                    }
+                    component.getMenu().hide();
+                    if (confirm(rmFileList.length + "개 파일을 정말 삭제하시겠습니까?")) {
+                        console.log("list : ", rmFileList);
                         component.showProgress();
                         // 파일 삭제 패킷 작성뒤 송신한다.
                         commander.setRemoveFlag(true);
-                        var packet = new Packet(device, { "type" : REMOVE, "data" : rmFileList });
+                        var packet = new Packet(device, {"type": REMOVE, "data": rmFileList});
                         socket.emit(DATA, packet);
 
-					}
-					return false;
-				});
+                    }
+                    return false;
+                });
 
-
-            	component.attachEvent("onBeforeUploadFile", function(id){
-					// 파일업로드가 끝났을 경우 발생하는 이벤트
-                    console.log(">> EVENT CALL : onBeforeUploadFile");
-
-				});
-
-
-            	component.attachEvent("onAfterRun", function(id){
-					// 파일을 실행 하고자 할때 발생하는 이벤트이며 이 때는 다운로드를 실시한다.
+                component.attachEvent("onAfterRun", function (id) {
+                    // 파일을 실행 하고자 할때 발생하는 이벤트이며 이 때는 다운로드를 실시한다.
                     console.log(">> EVENT CALL : onAfterRun");
                     var path = component.getPath(id);
-					var filePath  = getRealPath(1, path.length-1, path);
-					var fileName = component.getItem(path[path.length-1]).value;
+                    var filePath = getRealPath(1, path.length - 1, path);
+                    var fileName = component.getItem(path[path.length - 1]).value;
                     filePath += fileName;
-                    var fileSize= component.getItem(path[path.length-1]).size;
+                    var fileSize = component.getItem(path[path.length - 1]).size;
                     console.log("===> run file path : ", filePath);
                     console.log("===> run file size : ", fileSize);
                     commander.initRunFile();
                     commander.setRunFileName(fileName);
+                    commander.setTotalFileSize(fileSize);
+
                     console.log("file Name : ", commander.getRunFileName());
+                    var roomKey = mem_id + "_" + device + "_" + new Date().getTime();
+
                     var packet = new Packet(device, {
-                        "type"      :   GET,
-                        "data"      :   filePath
+                        "type": GET,
+                        "data": filePath,
+                        "key": roomKey
                     });
-                    socket.emit(DATA, packet);
+                    //  socket.emit(DATA, packet);
+
+                    var dtpSocket = io.connect(host + ":" + PORT);
+                    dtpSocket.on(CONNECT, function () {
+                        console.log("==================== DOWNLOAD DTP CONNECT ! =======================");
+                        dtpSocket.emit(REQ_DTP, {"key": roomKey});
+
+                        dtpSocket.on(RES_DTP, function (data) {
+                            console.log(RES_DTP, data);
+                            if (data["code"] === SUCCESS) {
+                                socket.emit(DATA, packet);
+                            }
+                        });
+                        dtpSocket.on("bin", function (data) {
+//                            console.log("======>> RECV BINARY DATA : ", data);
+                            var arr = new Uint8Array(data);
+                            var bin = commander.getBinary();
+                            var binIdx = commander.getCurrBinIdx();
+                            for (var idx = 0; idx < arr.length; idx++) {
+                                bin[binIdx++] = arr[idx];
+                            }
+                            commander.setCurrBinIdx(binIdx);
+                            if (binIdx === commander.getTotalFileSize()) {
+                                fileDownload();
+                                dtpSocket.close();
+                            }
+                        });
+                        dtpSocket.on("disconnect", function () {
+                            console.log("====>> DTP DISCONNECT");
+                        });
+
+                    });
+
+
 //					var reqData = {
 //						filePath : getFilePath,
 //						fileName : name
 //					}
-				});
+                });
 
 
-            	function getRealPath(start, length, list){
-            	    var path = "/";
-            	    for(var idx = start; idx<length; idx++)
+                function getRealPath(start, length, list) {
+                    var path = "/";
+                    for (var idx = start; idx < length; idx++)
                         path += (component.getItem(list[idx]).value + "/");
-					return path;
-				}
-            	function getFilePathList(items){
+                    return path;
+                }
+
+                function getFilePathList(items) {
                     var list = [];
                     var fileNameList = [];
 //                    var fileList = [];
 
                     // 파일이 하나인가 다수인가?
-                    if( typeof(items) === "string") list.push(items);
+                    if (typeof(items) === "string") list.push(items);
                     else list = items;
 
                     var path = "/";
                     var itemPaths = component.getPath(list[0]);
-                    for(var idx = 1; idx< itemPaths.length-1; idx++){
+                    for (var idx = 1; idx < itemPaths.length - 1; idx++) {
                         path += (component.getItem(itemPaths[idx]).value + "/");
                     }
 
                     // 파일이 여러개 일수도 있으므로 중첩 반복문을 쓴다
-                    for(var row = 0; row < list.length; row++){
+                    for (var row = 0; row < list.length; row++) {
                         // 파일 목록의 하나의 요소를 가져온다.
                         itemPaths = component.getPath(list[row]);
                         // 파일경로 및 최종 파일명을 추가한다
-						var fileName = component.getItem(itemPaths[itemPaths.length-1]).value;
-//                        fileList.push(path+fileName);
+                        var fileName = component.getItem(itemPaths[itemPaths.length - 1]).value;
                         fileNameList.push(fileName);
                     }
-
                     return {
-                        "fileNameList" 	: fileNameList,
-						"srcFilePath"	: path
-					};
-				}
-			/* ======= End Manager Event Handling ======== */
+                        "fileNameList": fileNameList,
+                        "srcFilePath": path
+                    };
+                }
 
+                /* ======= End Manager Event Handling ======== */
+                var isCopy;
+                var isCut;
 
-
-			// 2016. 09. 01 Create by KTS.
-			<!--var socket = io.connect("<%=server_addr%>:9900", {timeout : (1000*60*30)});-->
-
-
-			var fileData;
-
-			var isCopy;
-			var isCut;
-			var originPath;
-			var newPath;
-			var fileName;
-			var downloadMap = new Map();
-
-			var createForderAck = true;
-			var isCreateForderComplete = false;
-			var loadingText = "파일 목록을 불러오는 중...";
-			var proccessText = "잠시만 기다려 주세요";
-//			var loadingData = {
-//				effect : 'roundBounce',
-//				text : '잠시만 기다려주세요',
-//				bg : 'rgba(255,255,255,0.7)',
-//				color : '#000',
-//				maxSize : '',
-//				textPos : 'vertical',
-//				fontSize : '',
-//				source : ''
-//			};
-//			var body = $('body');
-//			var kts ;
-//			var uploadPath;
-//			var fileBuffer = [];
-//    		var fileLength = 0;
-//    		var progress_sec = $("#upload_progress");
-//    		var progress_bar = $('.progress .progress-bar');
-//
-//
-//			loadingData.text = loadingText;
-//			body.waitMe(loadingData);
-			function updateProgressBar(num){
-				progress_bar.attr("data-transitiongoal", num).progressbar({display_text: 'center'});
-			}
-
-//			socket.on("connect", function(data){
-//				progress_bar.progressbar({display_text: 'center'});
-//				console.log("연결 성공!");
-//
-//
-//				socket.on("type", function(data){
-//					socket.emit('browser', {});
-//
-//					// setInterval();
-//				});
-//				socket.on("state", function(){
-//					socket.emit('manage_state', {member : mem_id, device : dev_name});
-//				});
-//				socket.on("ok_manage", function(data){
-//					console.log("ok_manage");
-//					socket.emit("connect_device", { member : mem_id, device : dev_name});
-//				});
-//				socket.on("success_device_connect", function(data){
-//					console.log("success_device_connect	!!!!");
-//					socket.emit("request_first_file_tree", data);
-//				});
-//				socket.on("power_off_device", function(){
-//					alert("기기와의 연결이 끊겼습니다.");
-//					document.location.replace("/");
-//				});
-//				setInterval(updateFileTree, 90000);
-//				socket.on("file_tree", function(tree){
-//					// console.log(tree);
-//					if(fileData == null){
-//						fileData = tree;
-//
-//						$$("files").parse(tree);
-//
-//						body.waitMe('hide');
-//						initFileManager($$("files"));
-//						window.onresize = function(){
-//							console.log("kts");
-//							$$("files").resize();
-//						}
-//
-//					}else{
-//						fileData = tree;
-//						$$("files").clearAll();
-//						$$("files").parse(tree);
-//					}
-//				});
-//
-//			});
-//			socket.on("res_create_forder", function(data){
-//				createForderAck = false;
-//				isCreateForderComplete = data.isComplete;
-//
-//				if(isCreateForderComplete){
-//					fileData = data.tree;
-//					$$("files").refresh();
-//					$$("files").clearAll();
-//					$$("files").parse(fileData);
-//				}
-//				// body.waitMe("hide");
-//			});
-//			socket.on("res_rename_file", function(data){
-//				console.log("res", data);
-//				if(data.isComplete)
-//					fileData = data.tree;
-//
-//				$$("files").refresh();
-//				$$("files").clearAll();
-//				$$("files").parse(fileData);
-//			});
-//			socket.on("res_paste", function(data){
-//				console.log("res", data);
-//				if(data.isComplete)
-//					fileData = data.tree;
-//				else{
-//					alert("작업을 완료 하지 못했습니다. ("+data.cnt+"/"+data.total+" 완료)");
-//				}
-//				isCut = false;
-//				isCopy = false;
-//				$$("files").refresh();
-//				$$("files").clearAll();
-//				$$("files").parse(fileData);
-//			});
-//			socket.on("response_copy", function(data){
-//				console.log("response copy", data);
-//				if(data.isComplete)
-//					fileData = data.tree;
-//				else{
-//					alert("파일복사에 실패하였습니다.");
-//				}
-//				isCut = false;
-//				isCopy = false;
-//				$$("files").refresh();
-//				$$("files").clearAll();
-//				$$("files").parse(fileData);
-//			});
-//			socket.on("response_rm", function(data){
-//				if(data.isComplete)
-//					fileData = data.tree;
-//				else{
-//					alert("파일을 삭제하지 못하였습니다.");
-//				}
-//
-//				$$("files").refresh();
-//				$$("files").clearAll();
-//				$$("files").parse(fileData);
-//			});
-//			socket.on("response_file_info", function(data){
-//				var key = data.key;
-//				if(downloadMap.has(key)){
-//
-//				}else{
-//					console.log(key);
-//					var obj = {
-//						chunkList : new Map(),
-//						fileName : data.fileName,
-//						totalChunk : data.totalChunk
-//					};
-//					downloadMap.set(key, obj);
-//				}
-//
-//			});
-//			socket.on("response_upload", function(data){
-//				if(data.isComplete){
-//					fileData = data.tree;
-//				}else{
-//					alert("파일업로드에 실패 했습니다.");
-//				}
-//				updateProgressBar(0);
-//				// $('.progress .progress-bar').css('width', '0%');
-//				progress_sec.hide();
-//				body.waitMe('hide');
-//				$$("files").refresh();
-//				$$("files").clearAll();
-//				$$("files").parse(fileData);
-//			});
-//
-//			function updateFileTree(){
-//				console.log("update file tree");
-//				socket.emit("update_file_tree", {});
-//			}
-//			function initFileManager(manager){
-//				var uploader = manager.getUploader();
-//				uploader.config.autosend = false;
-//				uploader.config.multiple = false;
-//				// console.log("up ;", uploader.hasEvent("onAfterFileAdd"));
-//				// uploader.detachEvent("onAfterFileAdd");
-//				// console.log("up ;", uploader.hasEvent("onAfterFileAdd"));
-
-//				uploader.attachEvent("onAfterFileAdd", function(item, response){
-//					console.log("upload!!!!", item);
-//					var size = 0;
-//					var fileSize = item.size;
-//
-//					var fileInfo = {
-//						fileName : item.name,
-//						fileSize : item.size,
-//						fileDest : uploadPath
-//					};
-//					var uploadStream = ss.createStream();
-//					var fileInputStream = ss.createBlobReadStream(item.file);
-//					ss(socket).emit("fileUpload", uploadStream, fileInfo);
-//					loadingData.text = item.name+"을(를) 업로드 중";
-//					body.waitMe(loadingData);
-//
-//					// $('.progress .progress-bar').css('width', Math.floor(size / fileSize * 100) + '%');
-//					updateProgressBar(0);
-//					progress_sec.show();
-//					fileInputStream.on("data", function(chunk){
-//						size+=chunk.length;
-//						updateProgressBar(Math.floor(size / fileSize * 100));
-//						// $('.progress .progress-bar').css('width', Math.floor(size / fileSize * 100) + '%');
-//					});
-//					fileInputStream.pipe(uploadStream);
-//
-//
-//
-//					// $('.progress .progress-bar').css('width', "0%");
-//					// $("#upload_progress").show();
-//					// ss.emit("fileUpload", )
-//					// return false;
-//				});
-//				%%%%
-//				manager.attachEvent("onAfterCreateFolder", function(id){
-//					console.log("kts :L ", id);
-//					var path = manager.getPath(id);
-//					var createForderPath;
-//
-//
-//					createForderPath = "/";
-//					for(var idx = 1; idx< path.length; idx++){
-//						createForderPath += (manager.getItem(path[idx]).value + "/");
-//						// console.log("name : ", path[idx]);
-//					}
-//					console.log("Path : ", createForderPath);
-//					// loadingData.text = proccessText;
-//					// body.waitMe(loadingData);
-//
-//					socket.emit("request_new_forder", {createPath : createForderPath});
-//					createForderAck = true;
-//					$$('files').showProgress();
-//					$$('files').getMenu().hide();
-//
-//					return false;
-//
-//				});
-//				%%%
-//				manager.attachEvent("onFolderSelect", function(id){
-//					console.log("select : ", id);
-//				});
-//				%%%
-//				manager.attachEvent('onBeforeEditStop', function(id, state, view){
-//					var newPath = "/";
-//					var oldPath = "/";
-//					var path = manager.getPath(id);
-//					for(var idx = 1; idx<path.length-1; idx++){
-//						newPath += (manager.getItem(path[idx]).value + "/");
-//						oldPath += (manager.getItem(path[idx]).value + "/");
-//					}
-//					newPath += state.value;
-//					oldPath += state.old;
-//					$$("files").showProgress();
-//					socket.emit("request_rename", {oldName : oldPath, newName : newPath});
-//
-//				});
-//				%%%
-//				manager.attachEvent("onBeforeMarkCopy", function(ids){
-//					console.log("copy");
-//					isCopy = true;
-//					isCut = false;
-//					fileInput(ids);
-//				});
-
-//				%%%
-//				manager.attachEvent("onBeforeMarkCut", function(ids){
-//					console.log("cut");
-//					isCut = true;
-//					isCopy = false;
-//					fileInput(ids);
-//				});
-//				%%%
-//				manager.attachEvent("onBeforePasteFile", function(id){
-//					newFileInput(id);
-//					console.log("new Path =", newPath);
-//					console.log("originPath = ", originPath);
-//					console.log("new Path == originPath", newPath == originPath);
-//
-//					if(newPath == originPath){
-//						alert("같은 곳에는 붙여 넣을 수 없습니다!");
-//					}else{
-//						var arr = [];
-//						for(var idx = 0; idx< originPath.length; idx++){
-//							arr[idx] = newPath+fileName[idx];
-//						}
-//						var reqData = {
-//							oldPaths : originPath,
-//							pastePaths : arr,
-//						}
-//						if(!isCut && isCopy){
-//							// $$("files").showProgress();
-//							console.log("Copy Paste");
-//							$$("files").showProgress();
-//							socket.emit("request_copy_paste", reqData);
-//							// socket.emit("request_cop")
-//						}else if(isCut && !isCopy){
-//							$$("files").showProgress();
-//							console.log("Cut Paste");
-//							socket.emit("request_cut_paste", reqData);
-//						}
-//					}
-//				});
-//				%%%
-//				manager.attachEvent("onBeforeDeleteFile", function(ids){
-//					var fileList = [];
-//					if(typeof ids === "string" )
-//						fileList[0] = ids;
-//					else
-//						fileList = ids;
-//
-//
-//					var path;
-//					var oldPath;
-//					var rmList = [];
-//					for(var row = 0; row < fileList.length; row++){
-//						oldPath = "/";
-//						path = manager.getPath(fileList[row]);
-//						for(var idx = 1; idx< path.length-1; idx++){
-//							oldPath += (manager.getItem(path[idx]).value + "/");
-//						}
-//						oldPath += manager.getItem(path[path.length-1]).value;
-//						rmList[row] = oldPath;
-//					}
-//
-//
-//					$$('files').getMenu().hide();
-//					// var removePath = "/";
-//					// var path = manager.getPath(id);
-//					// for(var idx = 1; idx<path.length-1; idx++){
-//					// 	removePath += (manager.getItem(path[idx]).value + "/");
-//					// }
-//					// removePath += manager.getItem(path[idx]).value;
-//					if(confirm(rmList.length+"개 파일을 정말 삭제하시겠습니까?")){
-//						console.log("list : ", rmList);
-//						$$("files").showProgress();
-//						socket.emit("request_rm", {rmPaths : rmList});
-//					}
-//					// if(confirm(removePath+"를 정말 삭제 하시겠습니까?")){
-//					// 	$$("files").showProgress();
-//					// 	socket.emit("request_rm", {rmPath : removePath});
-//					// }
-//
-//					return false;
-//				});
-//				%%%%
-//				manager.attachEvent("onBeforeUploadFile", function(id){
-//					console.log("kts", id);
-//					var path = $$("files").getPath(id);
-//					var getFilePath  = "/";
-//					var dest;
-//					for(var idx = 1; idx< path.length-1; idx++){
-//						getFilePath += ($$('files').getItem(path[idx]).value+"/");
-//					}
-//					dest = $$('files').getItem(path[path.length-1]);
-//					if(dest.type == 'folder')
-//						getFilePath += (dest.value+"/");
-//
-//					uploadPath = getFilePath;
-//					console.log("path  : ", getFilePath);
-//					// var uploader = manager.getUploader();
-//					// uploader.fileDialog();
-//					// return true;
-//				});
-//				// manager.attachEvent("onAfterUploadFile", function(id){
-//				// 	console.log("kts", id);
-//				// 	return false;
-//				// });
-//				manager.attachEvent("onAfterDrop", function(context, ev){
-//					console.log("context : ", context);
-//					console.log("ev : ", ev);
-//				});
-
-//				%%%
-//				manager.attachEvent("onAfterRun", function(id){
-//					console.log("file open");
-//					// if($$("files").getItem(id).type == "Folder"){
-//					// 	$$("files").openFolders(id);
-//					// 	return ;
-//					// }
-//					var path = $$("files").getPath(id);
-//					var getFilePath  = "/";
-//					for(var idx = 1; idx< path.length-1; idx++){
-//						getFilePath += ($$('files').getItem(path[idx]).value+"/");
-//					}
-//					var name = $$('files').getItem(path[path.length-1]).value;
-//					var fileSize= $$('files').getItem(path[path.length-1]).size;
-//					var reqData = {
-//						filePath : getFilePath,
-//						fileName : name
-//					}
-//					loadingData.text = name+"을(를) 받아 오는중";
-//					body.waitMe(loadingData);
-//					var myStream = ss.createStream();
-//					ss(socket).emit("request_download", myStream, reqData);
-//					fileBuffer = [];
-//					fileLength = 0;
-//					// updateProgressBar(0);
-//					// progress_sec.show();
-//					myStream.on('data', function (chunk) {
-//		            	console.log("chunk file data", chunk);
-//		                fileLength += chunk.length;
-//		                // var num = Math.floor((fileLength / fileSize) * 100);
-//		                // updateProgressBar(num);
-//		                // progress = Math.max(progress - 2, 1);
-//		                // deferred.notify(progress);
-//		                fileBuffer.push(chunk);
-//
-//		            });
-//
-//		            myStream.on('end', function () {
-//		            	console.log("end data");
-//		                var filedata = new Uint8Array(fileLength),
-//		                i = 0;
-//
-//		                //== Loop to fill the final array
-//		                fileBuffer.forEach(function (buff) {
-//		                    for (var j = 0; j < buff.length; j++) {
-//		                        filedata[i] = buff[j];
-//		                        i++;
-//		                    }
-//		                });
-//
-//		                // deferred.notify(100);
-//
-//		                //== Download file in browser
-//		                downloadFileFromBlob([filedata], name);
-//		                progress_sec.hide();
-//		                updateProgressBar(0);
-//		                // deferred.resolve();
-//						body.waitMe("hide");
-//		                // deferred.notify(100);
-//
-//		                //== Download file in browser
-//		                // downloadFileFromBlob([filedata], originalFilename);
-//
-//		                // deferred.resolve();
-//		            });
-//					socket.emit("request_file", reqData);
-//
-//				});
-//
-//				function newFileInput(ids){
-//					var pastePath;
-//					var path;
-//					newPaht = [];
-//
-//					pastePath = "/";
-//					path = manager.getPath(ids);
-//
-//					for(var idx = 1; idx< path.length; idx++)
-//						pastePath += (manager.getItem(path[idx]).value + "/");
-//					newPath = pastePath;
-//				}
-//				function fileInput(ids){
-//					var fileList = [];
-//					if(typeof ids === "string" )
-//						fileList[0] = ids;
-//					else
-//						fileList = ids;
-//
-//					var oldPath;
-//					var path;
-//
-//					originPath = [];
-//					fileName = [];
-//
-//					for(var row = 0; row < fileList.length; row++){
-//						oldPath = "/";
-//						path = manager.getPath(fileList[row]);
-//						for(var idx = 1; idx< path.length-1; idx++){
-//							oldPath += (manager.getItem(path[idx]).value + "/");
-//						}
-//						fileName[row] = manager.getItem(path[path.length-1]).value;
-//						originPath[row] = oldPath+fileName[row];
-//					}
-//
-//				}
-//				var downloadFileFromBlob = (function () {
-//				    var a = document.createElement("a");
-//				    document.body.appendChild(a);
-//				    a.style = "display: none";
-//				    return function (data, fileName) {
-//				        var blob = new Blob(data, {
-//				                type : "octet/stream"
-//				            }),
-//				        url = window.URL.createObjectURL(blob);
-//				        a.href = url;
-//				        a.download = fileName;
-//				        a.click();
-//				        window.URL.revokeObjectURL(url);
-//				    };
-//				}());
-//			}
+                function updateProgressBar(num) {
+                    progress_bar.attr("data-transitiongoal", num).progressbar({display_text: 'center'});
+                }
+            })();
 		
 		</script>
 	</body>
