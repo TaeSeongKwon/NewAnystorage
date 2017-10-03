@@ -657,9 +657,9 @@ function closed(client){
 
         if ((ws === null || ws === undefined) &&
             (tcp === null || tcp === undefined)) {
-           // io2.dtpSet.delete(client.myKey);
+            if(tcp == client) io2.dtpSet.delete(client.myKey);
         }
-        client["myKey"] = null;
+     //   client["myKey"] = null;
     }
 }
 module.exports = app;
