@@ -225,6 +225,7 @@
                 var REQ_DTP = "request:new_dtp";
                 var RES_DTP = "response:new_dtp";
                 var RDY_RECV = "ready:file_recv";
+                var OFFLINE = "offline";
 
                 var component = webix.ui({
                     container: "manager",
@@ -263,6 +264,10 @@
                         case RESPONSE :
 //                            var innerData = data["data"];
                             responseHandler(data);
+                            break;
+                        case OFFLINE :
+                            alert(data["statusText"]);
+                            location.href="/";
                             break;
                     }
                 });

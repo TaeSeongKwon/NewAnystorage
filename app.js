@@ -285,6 +285,17 @@ myServer.on("connection", function(socket){
                   console.log("===> Recv : "+LOGIN);
                   tcpLogin(data, socket);   // Call android login
               }else if(data["type"] === LOGOUT){
+                  console.log("===> Recv : "+LOGOUT);
+                  var responseDsata;
+                  if(tcpLogout(socket)){
+                      responseDsata = new ResponseData("response:logout", 200, "Success Logout!");
+                  }else{
+                      responseDsata = new ResponseData("response:logout", 400, "Fail Logout! Please Question Administrator!");
+                  }
+
+                  responseDsata.setData(null);
+                  var buff = new Buffer(JSON.stringify(responseDsata),"UTF-8");
+                  socket.write(buff);
 
               }else if(data["type"] === DATA){
                   console.log("===> Recv"+DATA, typeof data["data"]);
@@ -325,7 +336,8 @@ myServer.on("connection", function(socket){
   });
   socket.on("close", function(){
       console.log("TCP Socket Close");
-      if(socket.mySerial){
+      if(socket["mySerial"]){
+          tcpLogout(socket);
         // var member = userTable.get(socket.myUserKey);
         // member.removeDevice(socket.mySerial);
         // console.log("delete online list");
@@ -354,6 +366,25 @@ function sendData(packet, socket){
     }else{
         console.log("====> send data load fail.... not exist user Table value");
     }
+}
+function tcpLogout(socket){
+    var myUserKey = socket["myUserKey"];
+    if(myUserKey !== undefined || myUserKey !== null){
+        if(userTable.has(myUserKey)){
+            var record = userTable.get(myUserKey);
+            var mySerial = socket["mySerial"];
+            if(mySerial !== null || mySerial !== undefined){
+                var user = record.getUser();
+                var offlineData = new ResponseData(OFFLINE, 200, "디바이스 연결이 끊겼습니다!");
+                user.emit("data", offlineData);
+                record.removeDevice(mySerial);
+                notifyOnlineDevices(myUserKey);
+
+                return true;
+            }
+        }
+    }
+    return false;
 }
 // 로그인 함수 구현
 function tcpLogin(data, socket){
@@ -463,7 +494,7 @@ function tcpLogin(data, socket){
                       },
                       function (err) {}
                   );
-
+                  notifyOnlineDevices(email);
               } else {
                   // 비밀번호가 틀렸을 경우
                   var resData = new ResponseData("response:login", 400, "Incorrect! User Email or Password!");
@@ -512,7 +543,7 @@ function notifyOnlineDevices(email){
 }
 
 
-/* ==================== TEST SERVER ============================ */
+/* ==================== DTP SERVER ============================ */
 REQ_DTP = "request:new_dtp";
 RES_DTP = "response:new_dtp";
 BIN_DATA = "bin";
