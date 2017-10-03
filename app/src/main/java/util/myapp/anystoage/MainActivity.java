@@ -1,6 +1,7 @@
 package util.myapp.anystoage;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.support.annotation.RequiresPermission;
@@ -16,12 +17,37 @@ import util.myapp.myinterface.MyObserver;
 import util.myapp.resource.FileInfo;
 import util.myapp.resource.Resource;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+
 import java.io.*;
 
-public class MainActivity extends AppCompatActivity implements MyObserver{
+public class MainActivity extends AppCompatActivity implements MyObserver, View.OnClickListener{
     private FileInfo fileInfo = null;
     Communication comm = null;
     private boolean flag = true;
+
+    @Override
+    public void onClick(View v) {
+
+            if(comm == null){
+                comm = Communication.getInstance();
+                comm.addObserver(this);
+            }
+            new Thread(){
+                public void run(){
+                    try {
+                        JSONObject obj = new JSONObject();
+                        obj.put("type", Resource.REQUEST_LOGOUT);
+                        comm.sendData(obj.toString());
+                    }catch(Exception e){
+                        Log.e("===>> LOGOUT JSON ENCODE ERROR! ", e.toString());
+                    }
+                }
+            }.start();
+
+
+    }
 
     @Override
     public void doRun(JSONObject obj) {
@@ -89,6 +115,16 @@ public class MainActivity extends AppCompatActivity implements MyObserver{
                 this.getFile(filePath, key);
             } else if (type.equals(Resource.TYPE_PUT)) {
                 this.receiveFile(obj);
+            }else if(type.equals(Resource.RESPONSE_LOGOUT)){
+                if(obj.getInt("code") == Resource.SUCCESS){
+                    Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+                    startActivity(intent);
+                    comm.removeObserver(MainActivity.this);
+                    MainActivity.this.finish();
+
+                }else{
+                    Log.e("====> RECV LOG OUT MSG ", obj.getString("statusText"));
+                }
             }
 
         }catch(Exception e){
@@ -430,6 +466,8 @@ public class MainActivity extends AppCompatActivity implements MyObserver{
             comm = Communication.getInstance();
             comm.addObserver(this);
         }
+        Button logoutBtn = (Button)this.findViewById(R.id.logoutBtn);
+        logoutBtn.setOnClickListener(this);
 
     }
 }

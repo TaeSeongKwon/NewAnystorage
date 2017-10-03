@@ -5,7 +5,7 @@ package util.myapp.resource;
  */
 
 public class Resource {
-    public final static String IP = "192.168.0.5";
+    public final static String IP = "project-knock.tk";
     public final static int PORT = 9900;
     public final static int DTP_PORT = 2011;
 
@@ -18,6 +18,9 @@ public class Resource {
 
     public final static String REQUEST_LOGIN = "login";
     public final static String RESPONSE_LOGIN = "response:login";
+
+    public final static String REQUEST_LOGOUT = "logout";
+    public final static String RESPONSE_LOGOUT = "response:logout";
 
     public final static String DATA = "data";
     public final static String TYPE_FILE_TREE = "file_tree";
