@@ -657,7 +657,7 @@ function closed(client){
 
         if ((ws === null || ws === undefined) &&
             (tcp === null || tcp === undefined)) {
-            io2.dtpSet.delete(client.myKey);
+           // io2.dtpSet.delete(client.myKey);
         }
         client["myKey"] = null;
     }
