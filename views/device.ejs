@@ -265,6 +265,7 @@
                     switch (data["type"]) {
                         case FILE_TREE :
                             var tree = data["data"];
+                            component.clearAll();
                             component.parse(tree);
                             break;
                         case RESPONSE :
