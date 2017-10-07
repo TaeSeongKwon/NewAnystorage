@@ -1,12 +1,13 @@
 
 <% include ./Handler/header %>
 		<script src="/socket.io/socket.io.js"></script>
-		<script src="/js/socket.io-stream.js"></script>
 		<script src="/codebase/webix.js" type="text/javascript"></script>
 		<script src="/codebase/filemanager/filemanager.js" type="text/javascript"></script>
 		<script src="/js/bootstrap-progressbar.js"></script>
 		
 		<script src="/js/waitMe.min.js"></script>
+        <script src="/js/loadingoverlay.min.js"></script>
+        <script src="/js/loadingoverlay_progress.min.js"></script>
 
 		<!--<script type="text/javascript" src="/js/jquery.faloading.js"></script>-->
 		<!-- <link type="text/css" rel="stylesheet" href="/css/jquery.faloading.css"/> -->
@@ -51,6 +52,10 @@
 		</section>
 		<script type="text/javascript">
             (function() {
+                $.LoadingOverlaySetup({
+                    image           : "/img/loading.gif"
+                });
+
                 // Defined Communication PACKET Data Structure
                 function Packet(device, data) {
                     this.device = device;
@@ -226,6 +231,7 @@
                 var RES_DTP = "response:new_dtp";
                 var RDY_RECV = "ready:file_recv";
                 var OFFLINE = "offline";
+                var RECV_CHUNK = "ack:chunk";
 
                 var component = webix.ui({
                     container: "manager",
@@ -277,7 +283,7 @@
                         case MK_DIR :
                             if (commander.getMkdirFlag()) {
                                 if (data["code"] === SUCCESS) {
-
+                                    requestFileTree();
                                 } else {
                                     alert("폴더를 생성하는데 실패했습니다");
                                 }
@@ -288,7 +294,7 @@
                         case MOVE :
                             if (commander.getMoveFlag()) {
                                 if (data["code"] === SUCCESS) {
-
+                                    requestFileTree();
                                 } else {
                                     alert("파일을 이동하는데 실패했습니다");
                                 }
@@ -299,7 +305,7 @@
                         case COPY :
                             if (commander.getCopyFlag()) {
                                 if (data["code"] === SUCCESS) {
-
+                                    requestFileTree();
                                 } else {
                                     alert("복사에 실패했습니다");
                                 }
@@ -310,7 +316,7 @@
                         case REMOVE :
                             if (commander.getRemoveFlag()) {
                                 if (data["code"] === SUCCESS) {
-
+                                    requestFileTree();
                                 } else {
                                     alert("파일삭제에 실패했습니다");
                                 }
@@ -321,7 +327,7 @@
                         case RENAME :
                             if (commander.getRenameFlag()) {
                                 if (data["code"] === SUCCESS) {
-
+                                    requestFileTree();
                                 } else {
                                     alert("이름 변경에 실패했습니다");
                                 }
@@ -331,7 +337,12 @@
                             break;
                     }
                 }
+                function requestFileTree(){
 
+                    var packet = new Packet(device, {"type": FILE_TREE});
+                    console.log("REQUEST_FILE_TREE", packet);
+                    socket.emit(DATA, packet);
+                }
                 function fileDownload() {
                     var bin = commander.getBinary();
                     var fileName = commander.getRunFileName();
@@ -359,18 +370,36 @@
 
                     console.log("FILE PATH : ", filePath);
                     console.log("item : ", item);
+                    var fileName = item["name"];
+                    var fileSize = item["size"];
+
                     var data = {
                         "type": PUT,
-                        "name": item["name"],
+                        "name": fileName,
                         "path": filePath,
-                        "size": item["size"],
+                        "size": fileSize,
                         "key": roomKey
                     };
                     var packet = new Packet(device, data);
                     var dtpSocket = io.connect(host + ":" + PORT);
+
                     dtpSocket.on(CONNECT, function () {
                         console.log("==================== UPLOAD DTP CONNECT ! =======================");
                         dtpSocket.emit(REQ_DTP, {"key": roomKey});
+
+                        var progress = new LoadingOverlayProgress();
+
+                        var divTag = $("<div>");
+                        var pTag = $("<p>", {
+                            css :{
+                                "position" : "relative",
+                                "top" : "100px",
+                                "font-size" : "20px"
+                            },
+                            text : fileName+" 을(를) 업로드중... "
+                        });
+
+                        divTag.append(pTag);
 
                         dtpSocket.on(RES_DTP, function (data) {
                             console.log(RES_DTP, data);
@@ -382,7 +411,20 @@
                         dtpSocket.on("msg", function (packet) {
                             console.log("msg", packet);
                             if (packet["type"] === RDY_RECV) {
+                                $.LoadingOverlay("show", {
+                                    "custom" : divTag.append(progress.Init())
+                                });
                                 uploadFile(dtpSocket);
+                            }else if(packet["type"] === RECV_CHUNK){
+
+                                console.log("CURRENT BYTE : ", packet["size"]+" Byte");
+                                var rate = (packet["size"] / fileSize)*100;
+                                progress.Update(rate.toFixed(1));
+                                if(packet["size"] === fileSize){
+                                    delete progress;
+                                    $.LoadingOverlay("hide");
+                                    dtpSocket.close();
+                                }
                             }
                         });
 
@@ -407,7 +449,7 @@
                             dtpSocket.emit("bin", chunk);
                             console.log("==>> BINARAY TRANSFER ( " + start + " ~ " + end + " ) : ", chunk);
                         }
-                        dtpSocket.close();
+//                        dtpSocket.close();
                     }
                     fileReader.readAsArrayBuffer(file);
                 }
@@ -631,11 +673,27 @@
                     dtpSocket.on(CONNECT, function () {
                         console.log("==================== DOWNLOAD DTP CONNECT ! =======================");
                         dtpSocket.emit(REQ_DTP, {"key": roomKey});
+                        var progress = new LoadingOverlayProgress();
 
                         dtpSocket.on(RES_DTP, function (data) {
                             console.log(RES_DTP, data);
                             if (data["code"] === SUCCESS) {
                                 socket.emit(DATA, packet);
+                                var divTag = $("<div>");
+                                var pTag = $("<p>", {
+                                    css :{
+                                        "position" : "relative",
+                                        "top" : "100px",
+                                        "font-size" : "20px"
+                                    },
+                                    text : fileName+" 을(를) 받아 오는중... "
+                                });
+
+
+                                divTag.append(pTag);
+                                $.LoadingOverlay("show", {
+                                   "custom" : divTag.append(progress.Init())
+                                });
                             }
                         });
                         dtpSocket.on("bin", function (data) {
@@ -643,13 +701,18 @@
                             var arr = new Uint8Array(data);
                             var bin = commander.getBinary();
                             var binIdx = commander.getCurrBinIdx();
+
                             for (var idx = 0; idx < arr.length; idx++) {
                                 bin[binIdx++] = arr[idx];
                             }
+                            var rate = (binIdx/commander.getTotalFileSize()) * 100;
                             commander.setCurrBinIdx(binIdx);
+                            progress.Update(rate.toFixed(1));
                             if (binIdx === commander.getTotalFileSize()) {
                                 fileDownload();
                                 dtpSocket.close();
+                                delete progress;
+                                $.LoadingOverlay("hide");
                             }
                         });
                         dtpSocket.on("disconnect", function () {

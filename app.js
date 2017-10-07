@@ -547,7 +547,7 @@ function notifyOnlineDevices(email){
 REQ_DTP = "request:new_dtp";
 RES_DTP = "response:new_dtp";
 BIN_DATA = "bin";
-
+RECV_CHUNK = "ack:chunk";
 SUCCESS = 200;
 function DTP(){
     var wSocket = null;
@@ -582,7 +582,8 @@ io2.on("connection", function(wClient){
         if(element !== null || element !== undefined) {
             var tcp = element.getTCPSocket();
             tcp.write(packet);
-            // ws.emit("bin", packet);
+            console.log("SENT BYTE : ", tcp.bytesWritten+" Byte");
+            wClient.emit("msg", {"type" : RECV_CHUNK, "size" : tcp.bytesWritten-tcp["hndBuff"] });
         }
     });
 
@@ -605,6 +606,7 @@ dtpServer.on("connection", function(client){
     client.on("data", function(packet){
 
         try {
+            console.log(packet.toString());
             var data = JSON.parse(packet.toString());
             console.log("====>> RECV DTP JSON MSG : ", data);
             if(data["type"] === REQ_DTP){
@@ -623,6 +625,7 @@ dtpServer.on("connection", function(client){
                 }
                 var buff = new Buffer(JSON.stringify(resData),"UTF-8");
                 client.write(buff);
+                client["hndBuff"] = client.bytesWritten;        // 첫 핸드 쉐이크 전송량을 측정
             }else{
                 var element = io2.dtpSet.get(client["myKey"]);
                 if(element !== null || element !== undefined) {
