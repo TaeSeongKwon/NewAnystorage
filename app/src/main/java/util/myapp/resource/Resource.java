@@ -5,7 +5,8 @@ package util.myapp.resource;
  */
 
 public class Resource {
-    public final static String IP = "project-knock.tk";
+//    public final static String IP = "13.125.18.115";
+    public final static String IP = "192.168.0.8";
     public final static int PORT = 9900;
     public final static int DTP_PORT = 2011;
 
